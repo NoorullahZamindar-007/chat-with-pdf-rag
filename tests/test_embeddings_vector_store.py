@@ -25,6 +25,21 @@ def test_get_settings_reads_embedding_env(monkeypatch):
     assert settings.top_k == 7
 
 
+def test_embedding_key_includes_chunk_settings():
+    from app import embedding_key
+
+    base = SimpleNamespace(
+        embedding_provider="sentence-transformers",
+        sentence_transformer_model="sentence-model",
+        ollama_embed_model="nomic-embed-text",
+        chunk_size=900,
+        chunk_overlap=180,
+    )
+    changed = SimpleNamespace(**{**base.__dict__, "chunk_overlap": 90})
+
+    assert embedding_key(base) == "sentence-transformers:sentence-model:chunk-900:overlap-180"
+    assert embedding_key(base) != embedding_key(changed)
+
 def test_get_embedding_function_uses_huggingface(monkeypatch):
     created = {}
 

@@ -70,6 +70,10 @@ def test_generate_answer_uses_groq_payload(monkeypatch):
 
     assert answer == "answer"
     assert captured["url"] == "https://api.groq.com/openai/v1/chat/completions"
+    headers = {key.lower(): value for key, value in captured["headers"].items()}
+    assert headers["accept"] == "application/json"
+    assert headers["authorization"] == "Bearer secret-key"
+    assert headers["user-agent"] == "chat-with-pdf-rag/1.0"
     assert captured["payload"]["temperature"] == 0
     assert captured["payload"]["max_tokens"] == 800
     assert captured["payload"]["model"] == "llama-3.1-8b-instant"

@@ -7,9 +7,10 @@ FALLBACK_ANSWER = "I could not find this information in the uploaded PDF."
 SYSTEM_PROMPT = f"""
 You answer questions using only the supplied PDF context.
 Do not use outside knowledge.
+Use all relevant context, ignore unrelated chunks, and combine facts when the context supports it.
 If the answer is not clearly present in the context, reply exactly:
 {FALLBACK_ANSWER}
-Keep answers concise and factual.
+Give a direct answer first, then cite useful page numbers in parentheses.
 """.strip()
 
 

@@ -1,4 +1,4 @@
-﻿import os
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -71,7 +71,7 @@ class Settings:
 def get_settings() -> Settings:
     """Read .env values each time so tests and local changes are picked up."""
     chroma_dir = _path_env("CHROMA_PERSIST_DIR", BASE_DIR / "vector_db")
-    top_k = _int_env("TOP_K", _int_env("RETRIEVAL_K", 5))
+    top_k = _int_env("TOP_K", _int_env("RETRIEVAL_K", 8))
 
     return Settings(
         base_dir=BASE_DIR,
@@ -81,11 +81,11 @@ def get_settings() -> Settings:
         chroma_persist_dir=chroma_dir,
         max_pdf_mb=_int_env("MAX_PDF_MB", 25),
         chunk_size=_int_env("CHUNK_SIZE", 900),
-        chunk_overlap=_int_env("CHUNK_OVERLAP", 150),
+        chunk_overlap=_int_env("CHUNK_OVERLAP", 180),
         retrieval_k=top_k,
         top_k=top_k,
         llm_provider=os.getenv("LLM_PROVIDER", "groq"),
-        llm_max_tokens=_int_env("LLM_MAX_TOKENS", 800),
+        llm_max_tokens=_int_env("LLM_MAX_TOKENS", 1000),
         groq_api_key=os.getenv("GROQ_API_KEY", ""),
         groq_model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
         ollama_llm_model=os.getenv(

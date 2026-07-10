@@ -90,10 +90,16 @@ def get_llm(settings: Settings, provider: str | None = None):
 
 def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> dict:
     data = json.dumps(payload).encode("utf-8")
+    request_headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "chat-with-pdf-rag/1.0",
+        **(headers or {}),
+    }
     request = urllib.request.Request(
         url,
         data=data,
-        headers={"Content-Type": "application/json", **(headers or {})},
+        headers=request_headers,
         method="POST",
     )
     try:
@@ -104,6 +110,11 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
         message = _extract_error_message(body) or exc.reason
         if exc.code == 404 or "model" in message.lower():
             raise RuntimeError(f"Model not found or unavailable: {message}") from exc
+        if exc.code == 403 and "1010" in message:
+            raise RuntimeError(
+                "API request failed: Groq rejected this request with 403/error 1010. "
+                "Check your deployed GROQ_API_KEY secret and retry."
+            ) from exc
         raise RuntimeError(f"API request failed: {message}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"API request failed: {exc.reason}") from exc

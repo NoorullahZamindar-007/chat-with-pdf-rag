@@ -1,3 +1,4 @@
+from html import escape
 from pathlib import Path
 
 import streamlit as st
@@ -14,7 +15,7 @@ from src.pdf_loader import (
     validate_pdf_upload,
 )
 from src.rag_chain import answer_question
-from src.utils import ensure_directories, format_source_pages, generate_document_id
+from src.utils import ensure_directories, generate_document_id
 from src.vector_store import (
     add_chunks_to_vector_store,
     collection_name_for_hash,
@@ -25,14 +26,301 @@ from src.vector_store import (
 logger = get_logger(__name__)
 
 
+def apply_custom_styles() -> None:
+    """Add a lightweight SaaS-style theme without extra frontend dependencies."""
+    st.markdown(
+        """
+        <style>
+            :root {
+                --app-bg: #f6f8fb;
+                --surface: #ffffff;
+                --surface-soft: #f8fafc;
+                --border: #d9e2ec;
+                --border-strong: #c6d3e1;
+                --text: #172033;
+                --muted: #61708a;
+                --accent: #0f766e;
+                --accent-soft: #e8f7f4;
+                --warning-soft: #fff7ed;
+            }
+
+            .stApp {
+                background: var(--app-bg);
+                color: var(--text);
+            }
+
+            .block-container {
+                max-width: 1180px;
+                padding-top: 2rem;
+                padding-bottom: 4rem;
+            }
+
+            [data-testid="stSidebar"] {
+                background: var(--surface);
+                border-right: 1px solid var(--border);
+            }
+
+            [data-testid="stSidebar"] h2,
+            [data-testid="stSidebar"] h3 {
+                color: var(--text);
+            }
+
+            .app-hero {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 28px 30px;
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+                margin-bottom: 20px;
+            }
+
+            .hero-topline {
+                color: var(--accent);
+                font-size: 0.78rem;
+                font-weight: 700;
+                letter-spacing: 0;
+                text-transform: uppercase;
+                margin-bottom: 8px;
+            }
+
+            .app-hero h1 {
+                margin: 0 0 10px 0;
+                font-size: clamp(2rem, 5vw, 3.2rem);
+                line-height: 1.05;
+                letter-spacing: 0;
+                color: var(--text);
+            }
+
+            .app-hero p {
+                margin: 0;
+                max-width: 760px;
+                color: var(--muted);
+                font-size: 1.02rem;
+                line-height: 1.65;
+            }
+
+            .badge-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 18px;
+            }
+
+            .badge {
+                display: inline-flex;
+                align-items: center;
+                border-radius: 999px;
+                border: 1px solid var(--border);
+                background: var(--surface-soft);
+                color: var(--text);
+                font-size: 0.82rem;
+                font-weight: 650;
+                padding: 6px 10px;
+                white-space: nowrap;
+            }
+
+            .badge.accent {
+                border-color: #9bd8d0;
+                background: var(--accent-soft);
+                color: #0b5f59;
+            }
+
+            .doc-strip {
+                display: grid;
+                grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(120px, 0.5fr));
+                gap: 10px;
+                align-items: stretch;
+                margin: 16px 0 18px 0;
+            }
+
+            .doc-cell {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 14px 16px;
+                min-height: 72px;
+            }
+
+            .doc-label {
+                display: block;
+                color: var(--muted);
+                font-size: 0.76rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                margin-bottom: 4px;
+            }
+
+            .doc-value {
+                color: var(--text);
+                font-size: 1.05rem;
+                font-weight: 750;
+                word-break: break-word;
+            }
+
+            .doc-number {
+                color: var(--text);
+                font-size: 1.55rem;
+                line-height: 1.1;
+                font-weight: 800;
+            }
+
+            .section-title {
+                color: var(--text);
+                font-size: 1.05rem;
+                font-weight: 780;
+                margin: 8px 0 8px 0;
+            }
+
+            .empty-state {
+                background: var(--surface);
+                border: 1px dashed var(--border-strong);
+                border-radius: 8px;
+                padding: 20px;
+                color: var(--muted);
+                margin-top: 12px;
+            }
+
+            .source-wrap {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 10px;
+                margin-bottom: 4px;
+            }
+
+            .source-pill {
+                display: inline-flex;
+                align-items: center;
+                border-radius: 999px;
+                background: var(--accent-soft);
+                border: 1px solid #a7ddd6;
+                color: #0b5f59;
+                font-size: 0.78rem;
+                font-weight: 700;
+                padding: 4px 9px;
+            }
+
+            div[data-testid="stMetric"] {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 14px 16px;
+                box-shadow: none;
+            }
+
+            div[data-testid="stFileUploader"] section {
+                background: var(--surface);
+                border: 1px dashed var(--border-strong);
+                border-radius: 8px;
+            }
+
+            .stButton > button {
+                border-radius: 8px;
+                border: 1px solid var(--border-strong);
+                font-weight: 700;
+            }
+
+            .stButton > button:hover {
+                border-color: var(--accent);
+                color: var(--accent);
+            }
+
+            @media (max-width: 800px) {
+                .doc-strip {
+                    grid-template-columns: 1fr;
+                }
+                .app-hero {
+                    padding: 22px;
+                }
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def badge(label: str, value: str, accent: bool = False) -> str:
+    tone = " badge accent" if accent else " badge"
+    return f'<span class="{tone.strip()}">{escape(label)}: {escape(value)}</span>'
+
+
+def source_badges(pages: list[int]) -> str:
+    if not pages:
+        return '<div class="source-wrap"><span class="source-pill">No source pages</span></div>'
+    pills = "".join(f'<span class="source-pill">Page {page}</span>' for page in pages)
+    return f'<div class="source-wrap">{pills}</div>'
+
+
+def render_header(settings) -> None:
+    badges = "".join(
+        [
+            badge("LLM", settings.llm_provider, accent=True),
+            badge("Embeddings", settings.embedding_provider),
+            badge("Top K", str(settings.top_k)),
+        ]
+    )
+    st.markdown(
+        f"""
+        <section class="app-hero">
+            <div class="hero-topline">RAG document assistant</div>
+            <h1>Chat with PDF using RAG</h1>
+            <p>
+                Upload a text-based PDF, index it once, and ask grounded questions.
+                Answers are generated only from retrieved PDF context and include page citations.
+            </p>
+            <div class="badge-row">{badges}</div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_document_status() -> None:
+    if not st.session_state.document_id:
+        st.markdown(
+            """
+            <div class="empty-state">
+                Upload a PDF to build a searchable local index. After indexing, the chat will stay ready for repeated questions.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    file_name = escape(st.session_state.file_name or "Indexed PDF")
+    st.markdown(
+        f"""
+        <div class="doc-strip">
+            <div class="doc-cell">
+                <span class="doc-label">Active document</span>
+                <span class="doc-value">{file_name}</span>
+            </div>
+            <div class="doc-cell">
+                <span class="doc-label">Pages</span>
+                <span class="doc-number">{st.session_state.page_count}</span>
+            </div>
+            <div class="doc-cell">
+                <span class="doc-label">Chunks</span>
+                <span class="doc-number">{st.session_state.chunk_count}</span>
+            </div>
+            <div class="doc-cell">
+                <span class="doc-label">Chat turns</span>
+                <span class="doc-number">{len(st.session_state.messages)}</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def embedding_key(settings) -> str:
-    """Keep Chroma collections separate when embedding settings change."""
+    """Keep Chroma collections separate when embedding or chunk settings change."""
     model = (
         settings.ollama_embed_model
         if settings.embedding_provider == "ollama"
         else settings.sentence_transformer_model
     )
-    return f"{settings.embedding_provider}:{model}"
+    return f"{settings.embedding_provider}:{model}:chunk-{settings.chunk_size}:overlap-{settings.chunk_overlap}"
 
 
 def document_collection_name(document_id: str, settings) -> str:
@@ -56,7 +344,8 @@ def init_session_state() -> None:
 
 def save_and_index_pdf(uploaded_file, settings) -> dict:
     """Run the full PDF indexing pipeline for one uploaded file."""
-    logger.info("PDF uploaded: %s", getattr(uploaded_file, "name", "unknown"))
+    original_name = getattr(uploaded_file, "name", "uploaded.pdf")
+    logger.info("PDF uploaded: %s", original_name)
     validate_pdf_upload(uploaded_file, settings.max_pdf_mb)
 
     # Save first, then validate the actual file path used by the app.
@@ -95,7 +384,7 @@ def save_and_index_pdf(uploaded_file, settings) -> dict:
         "page_count": len(pages),
         "chunk_count": len(chunks),
         "added_count": len(added_ids),
-        "file_name": Path(pdf_path).name,
+        "file_name": original_name or Path(pdf_path).name,
     }
 
 
@@ -127,15 +416,28 @@ def reset_current_document() -> None:
 
 def render_sidebar(settings):
     with st.sidebar:
-        st.header("Document")
+        st.markdown("## Control Panel")
+        st.caption("Upload, index, and manage the current PDF.")
         uploaded_file = st.file_uploader("Upload PDF", type=["pdf"], key="sidebar_pdf")
 
-        st.header("Configuration")
-        st.write(f"LLM provider: `{settings.llm_provider}`")
-        st.write(f"Embedding provider: `{settings.embedding_provider}`")
-        st.write(f"Chunk size: `{settings.chunk_size}`")
-        st.write(f"Chunk overlap: `{settings.chunk_overlap}`")
+        st.markdown("## Runtime")
+        st.markdown(
+            f"""
+            <div class="badge-row">
+                {badge("LLM", settings.llm_provider, accent=True)}
+                {badge("Embeddings", settings.embedding_provider)}
+                {badge("Chunk", str(settings.chunk_size))}
+                {badge("Overlap", str(settings.chunk_overlap))}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         st.caption("Values come from .env. API keys are never shown here.")
+
+        if st.session_state.document_id:
+            st.success("Document is indexed and ready.")
+        else:
+            st.info("No document indexed yet.")
 
         if st.button("Clear chat", use_container_width=True):
             st.session_state.messages = []
@@ -156,17 +458,31 @@ def show_index_result(result: dict) -> None:
     col3.metric("New chunks", result["added_count"])
 
 
+def render_retrieved_chunks(chunks) -> None:
+    if not chunks:
+        return
+    with st.expander("Retrieved chunks"):
+        for index, chunk in enumerate(chunks, start=1):
+            page = chunk.metadata.get("page_number", chunk.metadata.get("page", "unknown"))
+            st.markdown(f"**Chunk {index} | Page {page}**")
+            st.write(chunk.page_content)
+
+
+def render_assistant_message(message: dict) -> None:
+    answer = message.get("answer") or message.get("content", "")
+    st.markdown(answer)
+    if "source_pages" in message:
+        st.markdown(source_badges(message["source_pages"]), unsafe_allow_html=True)
+    render_retrieved_chunks(message.get("chunks") or [])
+
+
 def render_chat_history() -> None:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-            chunks = message.get("chunks") or []
-            if chunks:
-                with st.expander("Retrieved chunks"):
-                    for index, chunk in enumerate(chunks, start=1):
-                        page = chunk.metadata.get("page_number", chunk.metadata.get("page", "unknown"))
-                        st.markdown(f"**Chunk {index} - page {page}**")
-                        st.write(chunk.page_content)
+            if message["role"] == "assistant":
+                render_assistant_message(message)
+            else:
+                st.markdown(message["content"])
 
 
 def answer_user_question(question: str, settings) -> dict:
@@ -193,71 +509,63 @@ def answer_user_question(question: str, settings) -> dict:
         result = answer_question(question, docs, llm)
     logger.info("LLM answer completed: document_id=%s", st.session_state.document_id)
 
-    sources = format_source_pages(result["source_pages"])
     return {
-        "content": f"{result['answer']}\n\n**Sources:** {sources}",
+        "content": result["answer"],
+        "answer": result["answer"],
+        "source_pages": result["source_pages"],
         "chunks": docs,
     }
 
 
-def main() -> None:
-    st.set_page_config(page_title="Chat with PDF using RAG", page_icon="PDF")
-    st.title("Chat with PDF using RAG")
-
-    settings = get_settings()
-    ensure_directories(settings.upload_dir, settings.processed_dir, settings.chroma_persist_dir)
-    init_session_state()
-
-    sidebar_file = render_sidebar(settings)
-
-    st.markdown(
-        "Upload a text-based PDF, wait for indexing, then ask questions. "
-        "Answers are generated only from retrieved PDF chunks and include source pages."
-    )
-
+def render_upload_area(sidebar_file, settings):
+    st.markdown('<div class="section-title">Upload and index</div>', unsafe_allow_html=True)
     main_file = st.file_uploader("Upload PDF", type=["pdf"], key="main_pdf")
     uploaded_file = main_file or sidebar_file
 
     if uploaded_file is None:
-        st.info("No PDF uploaded yet. Upload a PDF in the sidebar or above to start.")
-    else:
-        try:
-            with st.spinner("Indexing PDF..."):
-                result = save_and_index_pdf(uploaded_file, settings)
-        except PDFValidationError as exc:
-            logger.exception("PDF upload validation failed")
-            st.error(str(exc))
-        except ValueError as exc:
-            logger.exception("PDF indexing validation failed")
-            message = str(exc)
-            if "OCR" in message or "extractable text" in message:
-                st.error("This PDF has no readable text. It may be scanned and needs OCR first.")
-            else:
-                st.error(message)
-        except MissingApiKeyError as exc:
-            logger.exception("LLM configuration failed")
-            st.error(str(exc))
-        except RuntimeError as exc:
-            logger.exception("PDF indexing runtime error")
-            message = str(exc)
-            if "Ollama server is not running" in message:
-                st.error(message)
-            elif "Chroma" in message or "vector" in message.lower():
-                st.error("Vector DB error. Check Chroma installation and the vector_db folder.")
-            else:
-                st.error(message)
-        except Exception:
-            logger.exception("PDF indexing failed")
-            st.error("Unknown error while indexing the PDF. Check the terminal logs.")
-        else:
-            st.session_state.document_id = result["document_id"]
-            st.session_state.collection_name = result["collection_name"]
-            st.session_state.vector_store = result["vector_store"]
-            st.session_state.page_count = result["page_count"]
-            st.session_state.chunk_count = result["chunk_count"]
-            st.session_state.file_name = result["file_name"]
-            show_index_result(result)
+        st.info("Upload a PDF in the sidebar or here to start.")
+        return
 
+    try:
+        with st.spinner("Indexing PDF..."):
+            result = save_and_index_pdf(uploaded_file, settings)
+    except PDFValidationError as exc:
+        logger.exception("PDF upload validation failed")
+        st.error(str(exc))
+    except ValueError as exc:
+        logger.exception("PDF indexing validation failed")
+        message = str(exc)
+        if "OCR" in message or "extractable text" in message:
+            st.error("This PDF has no readable text. It may be scanned and needs OCR first.")
+        else:
+            st.error(message)
+    except MissingApiKeyError as exc:
+        logger.exception("LLM configuration failed")
+        st.error(str(exc))
+    except RuntimeError as exc:
+        logger.exception("PDF indexing runtime error")
+        message = str(exc)
+        if "Ollama server is not running" in message:
+            st.error(message)
+        elif "Chroma" in message or "vector" in message.lower():
+            st.error("Vector DB error. Check Chroma installation and the vector_db folder.")
+        else:
+            st.error(message)
+    except Exception:
+        logger.exception("PDF indexing failed")
+        st.error("Unknown error while indexing the PDF. Check the terminal logs.")
+    else:
+        st.session_state.document_id = result["document_id"]
+        st.session_state.collection_name = result["collection_name"]
+        st.session_state.vector_store = result["vector_store"]
+        st.session_state.page_count = result["page_count"]
+        st.session_state.chunk_count = result["chunk_count"]
+        st.session_state.file_name = result["file_name"]
+        show_index_result(result)
+
+
+def handle_chat(settings) -> None:
+    st.markdown('<div class="section-title">Ask questions</div>', unsafe_allow_html=True)
     render_chat_history()
 
     question = st.chat_input("Ask a question from the uploaded PDF")
@@ -276,29 +584,44 @@ def main() -> None:
         assistant_message = answer_user_question(question, settings)
     except MissingApiKeyError as exc:
         logger.exception("LLM configuration failed")
-        assistant_message = {"content": str(exc), "chunks": []}
+        assistant_message = {"content": str(exc), "answer": str(exc), "source_pages": [], "chunks": []}
     except RuntimeError as exc:
         logger.exception("Chat runtime error")
         message = str(exc)
         if "Ollama server is not running" in message:
-            assistant_message = {"content": message, "chunks": []}
+            answer = message
         elif "API request failed" in message or "Model not found" in message:
-            assistant_message = {"content": message, "chunks": []}
+            answer = message
         else:
-            assistant_message = {"content": "Vector DB error or LLM error. Check the terminal logs.", "chunks": []}
+            answer = "Vector DB error or LLM error. Check the terminal logs."
+        assistant_message = {"content": answer, "answer": answer, "source_pages": [], "chunks": []}
     except Exception:
         logger.exception("Chat failed")
-        assistant_message = {"content": "Unknown error while answering. Check the terminal logs.", "chunks": []}
+        answer = "Unknown error while answering. Check the terminal logs."
+        assistant_message = {"content": answer, "answer": answer, "source_pages": [], "chunks": []}
 
     st.session_state.messages.append({"role": "assistant", **assistant_message})
     with st.chat_message("assistant"):
-        st.markdown(assistant_message["content"])
-        if assistant_message["chunks"]:
-            with st.expander("Retrieved chunks"):
-                for index, chunk in enumerate(assistant_message["chunks"], start=1):
-                    page = chunk.metadata.get("page_number", chunk.metadata.get("page", "unknown"))
-                    st.markdown(f"**Chunk {index} - page {page}**")
-                    st.write(chunk.page_content)
+        render_assistant_message(assistant_message)
+
+
+def main() -> None:
+    st.set_page_config(page_title="Chat with PDF using RAG", layout="wide")
+    apply_custom_styles()
+
+    settings = get_settings()
+    ensure_directories(settings.upload_dir, settings.processed_dir, settings.chroma_persist_dir)
+    init_session_state()
+
+    render_header(settings)
+    sidebar_file = render_sidebar(settings)
+    render_document_status()
+
+    left, right = st.columns([0.92, 1.08], gap="large")
+    with left:
+        render_upload_area(sidebar_file, settings)
+    with right:
+        handle_chat(settings)
 
 
 if __name__ == "__main__":
