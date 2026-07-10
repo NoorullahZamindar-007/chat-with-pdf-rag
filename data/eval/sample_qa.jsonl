@@ -1,0 +1,3 @@
+{"question":"What is the main topic of the uploaded PDF?","reference_answer":"The PDF's main topic should be answered from the document introduction.","expected_pages":[1]}
+{"question":"What key requirement is described in the document?","reference_answer":"The answer should quote or summarize the relevant requirement from the PDF.","expected_pages":[1,2]}
+{"question":"Who is responsible for the process?","reference_answer":"The responsible person or team should be named if it appears in the PDF.","expected_pages":[2]}

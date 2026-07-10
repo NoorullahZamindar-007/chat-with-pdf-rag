@@ -1,0 +1,12 @@
+.venv
+__pycache__
+**/__pycache__
+**pycache**
+*.pyc
+.git
+.pytest_cache
+.ruff_cache
+.mypy_cache
+data/uploads/*
+vector_db/*
+.env

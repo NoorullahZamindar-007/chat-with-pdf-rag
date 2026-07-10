@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+data/uploads/*
+data/processed/*
+vector_db/*
+!data/uploads/.gitkeep
+!data/processed/.gitkeep
+!vector_db/.gitkeep
+data/eval/eval_results.csv

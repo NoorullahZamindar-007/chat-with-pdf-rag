@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./vector_db:/app/vector_db
+    restart: unless-stopped
