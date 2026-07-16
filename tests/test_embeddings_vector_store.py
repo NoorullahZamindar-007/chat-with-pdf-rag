@@ -133,7 +133,7 @@ def test_retrieve_relevant_chunks_filters_by_document_id(monkeypatch):
     monkeypatch.setattr(retriever, "get_vector_store", lambda collection_name: store)
 
     results = retriever.retrieve_relevant_chunks(
-        question="What is covered?", 
+        question="What is covered?",  
         collection_name="pdf_docs",
         document_id="doc",
         top_k=3,
