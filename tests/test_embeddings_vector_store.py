@@ -144,7 +144,7 @@ def test_retrieve_relevant_chunks_filters_by_document_id(monkeypatch):
     assert results == [
         {
             "text": "answer text",
-            "page_number": 4,
+            "page_number": 4, 
             "similarity_score": 0.82,
             "metadata": {"document_id": "doc", "page_number": 4, "chunk_id": "c1"},
         }
