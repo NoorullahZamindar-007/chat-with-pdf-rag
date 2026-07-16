@@ -49,7 +49,7 @@ def test_get_embedding_function_uses_huggingface(monkeypatch):
 
     module = types.ModuleType("langchain_huggingface")
     module.HuggingFaceEmbeddings = FakeHuggingFaceEmbeddings
-    monkeypatch.setitem(sys.modules, "langchain_huggingface", module)
+    monkeypatch.setitem(sys.modules, "langchain_huggingface", module) 
 
     from src.embeddings import get_embedding_function
 
