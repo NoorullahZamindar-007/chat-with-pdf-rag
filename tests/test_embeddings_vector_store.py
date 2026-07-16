@@ -140,7 +140,7 @@ def test_retrieve_relevant_chunks_filters_by_document_id(monkeypatch):
     )
 
     assert store.filter == {"document_id": "doc"}
-    assert store.k == 3
+    assert store.k == 3 
     assert results == [
         {
             "text": "answer text",
