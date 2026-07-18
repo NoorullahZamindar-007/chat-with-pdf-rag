@@ -11,7 +11,7 @@ def get_embedding_function(settings: Settings | None = None, provider: str | Non
     selected = (provider or settings.embedding_provider).lower().replace("_", "-")
 
     if selected in {"sentence-transformers", "huggingface"}:
-        try:
+        try: 
             from langchain_huggingface import HuggingFaceEmbeddings
         except ImportError as exc:
             raise RuntimeError(
