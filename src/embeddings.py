@@ -4,7 +4,7 @@ from src.config import Settings, get_settings
 def get_embedding_function(settings: Settings | None = None, provider: str | None = None):
     """Create the embedding model selected in .env.
 
-    Embeddings turn text chunks into numeric vectors. Similar meanings land near
+    Embeddings turn text chunks into numeric vectors. Similar meanings land near 
     each other, which lets Chroma retrieve PDF chunks relevant to a question.
     """
     settings = settings or get_settings()
