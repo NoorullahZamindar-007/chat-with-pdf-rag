@@ -14,7 +14,7 @@ def test_get_settings_reads_embedding_env(monkeypatch):
     monkeypatch.setenv("TOP_K", "7")
  
     from src.config import get_settings
-
+ 
     settings = get_settings()
 
     assert settings.embedding_provider == "ollama"
