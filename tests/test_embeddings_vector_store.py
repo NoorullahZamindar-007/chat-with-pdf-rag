@@ -12,7 +12,7 @@ def test_get_settings_reads_embedding_env(monkeypatch):
     monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text") 
     monkeypatch.setenv("CHROMA_PERSIST_DIR", "custom_chroma")
     monkeypatch.setenv("TOP_K", "7")
-
+ 
     from src.config import get_settings
 
     settings = get_settings()
