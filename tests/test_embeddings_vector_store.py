@@ -9,7 +9,7 @@ def test_get_settings_reads_embedding_env(monkeypatch):
     monkeypatch.setenv("EMBEDDING_PROVIDER", "ollama")
     monkeypatch.setenv("SENTENCE_TRANSFORMER_MODEL", "sentence-model")
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text") 
+    monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")    
     monkeypatch.setenv("CHROMA_PERSIST_DIR", "custom_chroma")
     monkeypatch.setenv("TOP_K", "7")
  
