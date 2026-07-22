@@ -25,7 +25,7 @@ def test_get_settings_reads_embedding_env(monkeypatch):
     assert settings.top_k == 7
 
 
-def test_embedding_key_includes_chunk_settings():
+def test_embedding_key_includes_chunk_settings(): 
     from app import embedding_key
 
     base = SimpleNamespace(
