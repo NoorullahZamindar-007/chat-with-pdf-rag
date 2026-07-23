@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 
-def test_get_settings_reads_embedding_env(monkeypatch):
+def test_get_settings_reads_embedding_env(monkeypatch):  
     monkeypatch.setenv("EMBEDDING_PROVIDER", "ollama")
     monkeypatch.setenv("SENTENCE_TRANSFORMER_MODEL", "sentence-model")
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
