@@ -16,7 +16,6 @@ def test_get_settings_reads_embedding_env(monkeypatch):
     from src.config import get_settings
  
     settings = get_settings()
-
     assert settings.embedding_provider == "ollama"
     assert settings.sentence_transformer_model == "sentence-model"
     assert settings.ollama_base_url == "http://localhost:11434"
