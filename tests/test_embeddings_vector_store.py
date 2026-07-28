@@ -45,7 +45,7 @@ def test_get_embedding_function_uses_huggingface(monkeypatch):
     class FakeHuggingFaceEmbeddings:
         def __init__(self, model_name):
             created["model_name"] = model_name
-
+ 
     module = types.ModuleType("langchain_huggingface")
     module.HuggingFaceEmbeddings = FakeHuggingFaceEmbeddings
     monkeypatch.setitem(sys.modules, "langchain_huggingface", module) 
