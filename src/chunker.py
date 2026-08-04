@@ -16,7 +16,7 @@ class TextChunk:
     page_number: int
     chunk_index: int
     text: str
-    metadata: dict[str, Any]
+    metadata: dict[str, Any] 
 
 
 def _page_value(page: Any, name: str, default: Any = None) -> Any:
