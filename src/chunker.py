@@ -8,7 +8,7 @@ from src.text_cleaner import clean_text
 
 @dataclass(frozen=True) 
 class TextChunk:
-    """A small piece of page text ready for embedding and retrieval."""
+    """A small piece of page text ready for embedding and retrieval.""" 
  
     chunk_id: str
     document_id: str
