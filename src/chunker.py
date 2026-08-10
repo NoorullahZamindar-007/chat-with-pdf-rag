@@ -12,7 +12,7 @@ class TextChunk:
  
     chunk_id: str
     document_id: str
-    file_name: str
+    file_name: str 
     page_number: int
     chunk_index: int
     text: str
