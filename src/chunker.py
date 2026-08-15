@@ -84,7 +84,7 @@ def chunk_pages(
                     metadata=metadata,
                 )
             )
-
+  
     if not chunks:
         raise ValueError("No text chunks were created. Check that the PDF text is not empty.")
 
