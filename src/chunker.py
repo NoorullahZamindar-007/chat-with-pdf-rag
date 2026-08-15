@@ -4,7 +4,7 @@ from typing import Any
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src.text_cleaner import clean_text 
-
+ 
 
 @dataclass(frozen=True)   
 class TextChunk: 
