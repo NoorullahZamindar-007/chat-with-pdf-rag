@@ -5,7 +5,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src.text_cleaner import clean_text 
  
-
+ 
 @dataclass(frozen=True)    
 class TextChunk: 
     """A small piece of page text ready for embedding and retrieval."""   
