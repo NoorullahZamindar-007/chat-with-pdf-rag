@@ -14,10 +14,10 @@ class TextChunk:
     document_id: str 
     file_name: str  
     page_number: int  
-    chunk_index: int
+    chunk_index: int 
     text: str
     metadata: dict[str, Any] 
-
+ 
 
 def _page_value(page: Any, name: str, default: Any = None) -> Any:
     """Read values from a dataclass/object page or from its metadata dict."""
