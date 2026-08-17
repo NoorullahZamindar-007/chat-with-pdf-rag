@@ -90,7 +90,7 @@ def chunk_pages(
 
     return chunks
 
-
+ 
 def chunk_pdf_pages(pages: list, chunk_size: int = 1000, chunk_overlap: int = 150):
     """Compatibility wrapper for the existing Streamlit/vector-store code."""
     from langchain_core.documents import Document
