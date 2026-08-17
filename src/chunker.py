@@ -82,7 +82,7 @@ def chunk_pages(
                     chunk_index=chunk_index,
                     text=chunk_text,
                     metadata=metadata, 
-                )
+                ) 
             )
    
     if not chunks:
