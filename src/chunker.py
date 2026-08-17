@@ -18,7 +18,7 @@ class TextChunk:
     text: str
     metadata: dict[str, Any] 
  
-
+ 
 def _page_value(page: Any, name: str, default: Any = None) -> Any:
     """Read values from a dataclass/object page or from its metadata dict."""
     if isinstance(page, dict):
