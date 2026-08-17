@@ -81,7 +81,7 @@ def chunk_pages(
                     page_number=page_number,
                     chunk_index=chunk_index,
                     text=chunk_text,
-                    metadata=metadata,
+                    metadata=metadata, 
                 )
             )
   
