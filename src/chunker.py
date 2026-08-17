@@ -10,7 +10,7 @@ from src.text_cleaner import clean_text
 class TextChunk: 
     """A small piece of page text ready for embedding and retrieval."""   
  
-    chunk_id: str  
+    chunk_id: str   
     document_id: str 
     file_name: str  
     page_number: int   
