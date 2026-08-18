@@ -10,7 +10,7 @@ from src.retriever import retrieve_relevant_chunks
 
 try: 
     from src.rag_chain import answer_question
-except Exception:
+except Exception: 
     answer_question = None
 
  
