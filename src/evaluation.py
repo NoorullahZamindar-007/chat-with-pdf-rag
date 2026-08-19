@@ -6,7 +6,7 @@ from typing import Any
 
 from src.config import BASE_DIR, get_settings
 from src.llm import get_llm
-from src.retriever import retrieve_relevant_chunks 
+from src.retriever import retrieve_relevant_chunks    
 
 try:  
     from src.rag_chain import answer_question
