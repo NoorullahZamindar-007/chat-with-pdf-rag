@@ -18,7 +18,7 @@ NOT_FOUND_TEXT = "I could not find this information in the uploaded PDF."
 
 def _load_qa_file(qa_file: str) -> list[dict[str, Any]]:
     path = Path(qa_file)
-    if not path.exists():
+    if not path.exists(): 
         raise FileNotFoundError(f"Evaluation QA file does not exist: {qa_file}")
 
     examples: list[dict[str, Any]] = []
