@@ -16,7 +16,7 @@ from src.pdf_loader import (
 )
 from src.rag_chain import answer_question 
 from src.utils import ensure_directories, generate_document_id
-from src.vector_store import (
+from src.vector_store import ( 
     add_chunks_to_vector_store,
     collection_name_for_hash,
     get_vector_store,
