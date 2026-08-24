@@ -4,7 +4,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.chunker import chunk_pages
-from src.config import get_settings
+from src.config import get_settings 
 from src.llm import MissingApiKeyError, get_llm
 from src.logger import get_logger
 from src.pdf_loader import ( 
