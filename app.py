@@ -8,7 +8,7 @@ from src.config import get_settings
 from src.llm import MissingApiKeyError, get_llm
 from src.logger import get_logger
 from src.pdf_loader import ( 
-    PDFValidationError,
+    PDFValidationError, 
     extract_pdf_pages,
     save_uploaded_pdf,
     validate_pdf, 
