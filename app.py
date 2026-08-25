@@ -36,7 +36,7 @@ def apply_custom_styles() -> None:
                 --surface: #ffffff;
                 --surface-soft: #f8fafc;
                 --border: #d9e2ec;
-                --border-strong: #c6d3e1;
+                --border-strong: #c6d3e1; 
                 --text: #172033;
                 --muted: #61708a;
                 --accent: #0f766e;
