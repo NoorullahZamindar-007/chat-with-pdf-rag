@@ -20,7 +20,7 @@ from src.vector_store import (
     add_chunks_to_vector_store,
     collection_name_for_hash,
     get_vector_store,
-)
+) 
 
 
 logger = get_logger(__name__)
