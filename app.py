@@ -14,7 +14,7 @@ from src.pdf_loader import (
     validate_pdf, 
     validate_pdf_upload,
 )
-from src.rag_chain import answer_question 
+from src.rag_chain import answer_question   
 from src.utils import ensure_directories, generate_document_id
 from src.vector_store import ( 
     add_chunks_to_vector_store,
