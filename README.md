@@ -5,7 +5,7 @@
 Chat with PDF using RAG is a beginner-friendly AI application that lets a user upload a PDF, ask questions, and receive answers grounded only in the uploaded document. The app extracts PDF text, chunks it, creates embeddings, stores those embeddings in ChromaDB, retrieves relevant chunks, and sends only that context to an LLM.
  
 The project is designed as a portfolio-ready reference implementation for Retrieval-Augmented Generation with a clean Python module structure, Streamlit UI, local vector storage, evaluation utilities, Docker support, logging, and tests.
-
+ 
 ## Problem
 
 Normal LLMs are powerful, but they do not automatically know the contents of a private PDF. If you ask a general model about a document it has never seen, it may guess, hallucinate, or use unrelated outside knowledge.
