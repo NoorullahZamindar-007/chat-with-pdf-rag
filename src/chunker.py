@@ -15,7 +15,7 @@ class TextChunk:
     file_name: str  
     page_number: int  
     chunk_index: int 
-    text: str
+    text: str 
     metadata: dict[str, Any] 
  
  
