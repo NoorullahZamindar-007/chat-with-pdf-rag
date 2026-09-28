@@ -15,7 +15,7 @@ def get_embedding_function(settings: Settings | None = None, provider: str | Non
             from langchain_huggingface import HuggingFaceEmbeddings
         except ImportError as exc:
             raise RuntimeError(
-                "SentenceTransformer embeddings need langchain-huggingface. "
+                "SentenceTransformer embeddings need langchain-huggingface. " 
                 "Run: pip install -r requirements.txt" 
             ) from exc
 
