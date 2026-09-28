@@ -14,7 +14,7 @@ RAG solves this by retrieving relevant text from the uploaded PDF first, then gi
 
 ## Features
 
-- Upload PDF
+- Upload PDF 
 - Extract text
 - Chunk text
 - Generate embeddings
