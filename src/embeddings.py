@@ -27,7 +27,7 @@ def get_embedding_function(settings: Settings | None = None, provider: str | Non
         except ImportError as exc:
             raise RuntimeError(
                 "Ollama embeddings need langchain-ollama. Run: pip install -r requirements.txt"
-            ) from exc
+            ) from exc 
 
         return OllamaEmbeddings(
             model=settings.ollama_embed_model,
