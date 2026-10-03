@@ -31,7 +31,7 @@ def get_embedding_function(settings: Settings | None = None, provider: str | Non
 
         return OllamaEmbeddings(
             model=settings.ollama_embed_model,
-            base_url=settings.ollama_base_url, 
+            base_url=settings.ollama_base_url,
         )
 
     raise ValueError(
