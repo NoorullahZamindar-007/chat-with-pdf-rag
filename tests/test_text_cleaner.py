@@ -20,3 +20,12 @@ def test_clean_text_keeps_hyphen_before_capitalized_line_start():
 
 def test_clean_text_keeps_hyphen_at_paragraph_break():
     assert clean_text("well-\n\nknown") == "well-\n\nknown"
+
+
+def test_clean_text_folds_ligatures():
+    # PyMuPDF often extracts typographic ligatures as single codepoints.
+    assert clean_text("ﬁle ﬂow") == "file flow"
+
+
+def test_clean_text_folds_fullwidth_characters():
+    assert clean_text("ＡＩ") == "AI"

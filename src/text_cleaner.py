@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 
 def clean_text(text: str) -> str:
@@ -8,6 +9,10 @@ def clean_text(text: str) -> str:
 
     # Null bytes can appear in extracted PDF text and break downstream tools.
     text = text.replace("\x00", " ")
+
+    # Fold compatibility characters (ﬁ -> fi, ﬂ -> fl, full-width forms) so
+    # PDF ligature glyphs do not become unknown tokens for the embedder.
+    text = unicodedata.normalize("NFKC", text)
 
     # Rejoin words split by a hyphen at a line break ("exper-\nimental" ->
     # "experimental"). Justified PDF text commonly hyphenates this way, and
