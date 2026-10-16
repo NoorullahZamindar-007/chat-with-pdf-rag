@@ -68,10 +68,27 @@ class Settings:
         return self.ollama_llm_model
 
 
+def _validate_settings(chunk_size: int, chunk_overlap: int, max_pdf_mb: int) -> None:
+    """Fail fast on inconsistent chunking/upload limits from the environment."""
+    if chunk_size <= 0:
+        raise ValueError(f"CHUNK_SIZE must be positive, got {chunk_size}.")
+    if not 0 <= chunk_overlap < chunk_size:
+        raise ValueError(
+            f"CHUNK_OVERLAP must satisfy 0 <= overlap < CHUNK_SIZE, "
+            f"got overlap={chunk_overlap} size={chunk_size}."
+        )
+    if max_pdf_mb <= 0:
+        raise ValueError(f"MAX_PDF_MB must be positive, got {max_pdf_mb}.")
+
+
 def get_settings() -> Settings:
     """Read .env values each time so tests and local changes are picked up."""
     chroma_dir = _path_env("CHROMA_PERSIST_DIR", BASE_DIR / "vector_db")
     top_k = _int_env("TOP_K", _int_env("RETRIEVAL_K", 8))
+    chunk_size = _int_env("CHUNK_SIZE", 900)
+    chunk_overlap = _int_env("CHUNK_OVERLAP", 180)
+    max_pdf_mb = _int_env("MAX_PDF_MB", 25)
+    _validate_settings(chunk_size, chunk_overlap, max_pdf_mb)
 
     return Settings(
         base_dir=BASE_DIR,
@@ -79,9 +96,9 @@ def get_settings() -> Settings:
         processed_dir=BASE_DIR / "data" / "processed",
         vector_db_dir=chroma_dir,
         chroma_persist_dir=chroma_dir,
-        max_pdf_mb=_int_env("MAX_PDF_MB", 25),
-        chunk_size=_int_env("CHUNK_SIZE", 900),
-        chunk_overlap=_int_env("CHUNK_OVERLAP", 180),
+        max_pdf_mb=max_pdf_mb,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
         retrieval_k=top_k,
         top_k=top_k,
         llm_provider=os.getenv("LLM_PROVIDER", "groq"),
