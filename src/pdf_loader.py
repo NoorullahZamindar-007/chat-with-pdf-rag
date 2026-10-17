@@ -89,6 +89,14 @@ def save_uploaded_pdf(uploaded_file, upload_dir: Path) -> tuple[Path, str]:
     return pdf_path, file_hash
 
 
+def discard_saved_pdf(pdf_path: str | Path) -> None:
+    """Delete a saved upload, e.g. when indexing failed and it is junk."""
+    try:
+        Path(pdf_path).unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def extract_pdf_pages(file_path: str, document_id: str | None = None) -> list[PageDocument]:
     """Extract cleaned text from each non-empty PDF page."""
     if fitz is None:

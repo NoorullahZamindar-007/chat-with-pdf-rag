@@ -9,6 +9,7 @@ from src.llm import MissingApiKeyError, get_llm
 from src.logger import get_logger
 from src.pdf_loader import ( 
     PDFValidationError,
+    discard_saved_pdf,
     extract_pdf_pages, 
     save_uploaded_pdf, 
     validate_pdf, 
@@ -350,32 +351,38 @@ def save_and_index_pdf(uploaded_file, settings) -> dict:
 
     # Save first, then validate the actual file path used by the app.
     pdf_path, _ = save_uploaded_pdf(uploaded_file, settings.upload_dir)
-    validate_pdf(str(pdf_path), settings.max_pdf_mb)
-    logger.info("PDF validated: %s", pdf_path)
+    try:
+        validate_pdf(str(pdf_path), settings.max_pdf_mb)
+        logger.info("PDF validated: %s", pdf_path)
 
-    document_id = generate_document_id(str(pdf_path))
-    collection_name = document_collection_name(document_id, settings)
+        document_id = generate_document_id(str(pdf_path))
+        collection_name = document_collection_name(document_id, settings)
 
-    # PDF text is extracted and cleaned in the loader, then split into RAG chunks.
-    pages = extract_pdf_pages(str(pdf_path), document_id=document_id)
-    logger.info("PDF pages extracted: document_id=%s pages=%s", document_id, len(pages))
-    chunks = chunk_pages(
-        pages,
-        chunk_size=settings.chunk_size,
-        chunk_overlap=settings.chunk_overlap,
-    )
-    logger.info("Text chunks created: document_id=%s chunks=%s", document_id, len(chunks))
+        # PDF text is extracted and cleaned in the loader, then split into RAG chunks.
+        pages = extract_pdf_pages(str(pdf_path), document_id=document_id)
+        logger.info("PDF pages extracted: document_id=%s pages=%s", document_id, len(pages))
+        chunks = chunk_pages(
+            pages,
+            chunk_size=settings.chunk_size,
+            chunk_overlap=settings.chunk_overlap,
+        )
+        logger.info("Text chunks created: document_id=%s chunks=%s", document_id, len(chunks))
 
-    # Chroma creates embeddings through the configured embedding function.
-    logger.info("Embedding started: document_id=%s collection=%s", document_id, collection_name)
-    added_ids = add_chunks_to_vector_store(chunks, collection_name)
-    vector_store = get_vector_store(collection_name)
-    logger.info(
-        "Embedding completed: document_id=%s total_chunks=%s new_chunks=%s",
-        document_id,
-        len(chunks),
-        len(added_ids),
-    )
+        # Chroma creates embeddings through the configured embedding function.
+        logger.info("Embedding started: document_id=%s collection=%s", document_id, collection_name)
+        added_ids = add_chunks_to_vector_store(chunks, collection_name)
+        vector_store = get_vector_store(collection_name)
+        logger.info(
+            "Embedding completed: document_id=%s total_chunks=%s new_chunks=%s",
+            document_id,
+            len(chunks),
+            len(added_ids),
+        )
+    except Exception:
+        # The saved file is content-addressed, so a failed index is only junk
+        # on disk: remove it instead of leaving corrupt uploads behind.
+        discard_saved_pdf(pdf_path)
+        raise
 
     return {
         "document_id": document_id,
