@@ -69,6 +69,19 @@ def validate_pdf_upload(uploaded_file, max_size_mb: int) -> None:
     if size and size > max_size_mb * 1024 * 1024:
         raise PDFValidationError(f"PDF is too large. Max size is {max_size_mb} MB.")
 
+    # An extension check alone lets a renamed non-PDF through, which then
+    # fails later with a confusing error. Peek at the magic bytes instead.
+    # getvalue/getbuffer do not consume the stream, so the later save still
+    # sees the full file; raw streams are skipped because peeking would
+    # consume bytes the saver needs.
+    head = None
+    if hasattr(uploaded_file, "getvalue"):
+        head = uploaded_file.getvalue()[:5]
+    elif hasattr(uploaded_file, "getbuffer"):
+        head = bytes(uploaded_file.getbuffer()[:5])
+    if head is not None and not head.startswith(b"%PDF"):
+        raise PDFValidationError("The uploaded file does not look like a PDF.")
+
 
 def _read_upload_bytes(uploaded_file: BinaryIO) -> bytes:
     if hasattr(uploaded_file, "getvalue"):

@@ -100,3 +100,31 @@ def test_extract_pdf_pages_rejects_password_protected_pdf(monkeypatch):
     monkeypatch.setattr(pdf_loader, "fitz", FakeFitz())
     with pytest.raises(ValueError, match="password-protected"):
         pdf_loader.extract_pdf_pages("locked.pdf", document_id="doc-123")
+
+
+def test_validate_pdf_upload_rejects_non_pdf_magic_bytes():
+    """A renamed non-PDF fails validation even with a .pdf extension."""
+    import src.pdf_loader as pdf_loader
+
+    class FakeUpload:
+        name = "evil.pdf"
+        size = 4
+
+        def getvalue(self):
+            return b"MZ\x90\x00not a pdf"
+
+    try:
+        pdf_loader.validate_pdf_upload(FakeUpload(), max_size_mb=10)
+    except pdf_loader.PDFValidationError as exc:
+        assert "does not look like a PDF" in str(exc)
+    else:
+        raise AssertionError("expected PDFValidationError")
+
+    class RealUpload:
+        name = "real.pdf"
+        size = 8
+
+        def getvalue(self):
+            return b"%PDF-1.7..."
+
+    pdf_loader.validate_pdf_upload(RealUpload(), max_size_mb=10)  # must not raise
