@@ -113,6 +113,12 @@ def extract_pdf_pages(file_path: str, document_id: str | None = None) -> list[Pa
 
     pages: list[PageDocument] = []
     try:
+        if getattr(doc, "needs_pass", False):
+            raise ValueError(
+                "This PDF is password-protected. "
+                "Remove the password protection and upload it again."
+            )
+
         if doc.page_count == 0:
             raise ValueError("The PDF is empty.")
 

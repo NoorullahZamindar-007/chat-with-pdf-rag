@@ -79,3 +79,24 @@ def test_extract_pdf_pages_rejects_scanned_or_empty_pdf(tmp_path):
 
     with pytest.raises(ValueError, match="OCR"):
         extract_pdf_pages(str(pdf_path), document_id="doc-123")
+
+
+def test_extract_pdf_pages_rejects_password_protected_pdf(monkeypatch):
+    """A locked PDF must fail with a clear message, not the OCR hint."""
+    import src.pdf_loader as pdf_loader
+
+    class FakeDoc:
+        needs_pass = True
+        page_count = 1
+
+        def close(self):
+            pass
+
+    class FakeFitz:
+        @staticmethod
+        def open(path):
+            return FakeDoc()
+
+    monkeypatch.setattr(pdf_loader, "fitz", FakeFitz())
+    with pytest.raises(ValueError, match="password-protected"):
+        pdf_loader.extract_pdf_pages("locked.pdf", document_id="doc-123")
