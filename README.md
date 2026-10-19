@@ -24,6 +24,7 @@ RAG solves this by retrieving relevant text from the uploaded PDF first, then gi
 - Source page citations
 - Chat history
 - Groq and Ollama support
+- Upload validation: real PDF content (magic bytes), size limits, and clear errors for password-protected or scanned PDFs
 
 ## Architecture
 

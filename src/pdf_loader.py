@@ -49,6 +49,15 @@ def validate_pdf(file_path: str, max_size_mb: int) -> None:
     if path.stat().st_size > max_bytes:
         raise ValueError(f"PDF is too large. Max size is {max_size_mb} MB.")
 
+    # Re-check magic bytes on the saved file itself. The upload-time peek is
+    # skipped for raw streams (peeking would consume bytes the saver needs),
+    # so a renamed non-PDF could otherwise reach extraction and fail there
+    # with a misleading "file may be corrupt" message.
+    with path.open("rb") as file:
+        head = file.read(5)
+    if not head.startswith(b"%PDF"):
+        raise ValueError("The file does not look like a PDF.")
+
 
 def validate_pdf_upload(uploaded_file, max_size_mb: int) -> None:
     """Validate Streamlit's UploadedFile before saving it."""

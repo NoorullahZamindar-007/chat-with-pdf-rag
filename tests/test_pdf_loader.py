@@ -7,6 +7,27 @@ from src.text_cleaner import clean_text
 from src.utils import generate_document_id
 
 
+def test_validate_pdf_rejects_renamed_non_pdf_on_disk(tmp_path):
+    """A renamed non-PDF saved to disk must fail even though its name ends in .pdf.
+
+    The upload-time magic-byte peek is skipped for raw streams, so this
+    saved-file check is the last clear checkpoint before extraction.
+    """
+    file_path = tmp_path / "fake.pdf"
+    file_path.write_bytes(b"MZ\x90\x00not a pdf")
+
+    with pytest.raises(ValueError, match="does not look like a PDF"):
+        validate_pdf(str(file_path), max_size_mb=10)
+
+
+def test_validate_pdf_accepts_real_pdf_magic_bytes(tmp_path):
+    """A file starting with %PDF- passes the magic-byte check."""
+    file_path = tmp_path / "real.pdf"
+    file_path.write_bytes(b"%PDF-1.7\n%fake content")
+
+    validate_pdf(str(file_path), max_size_mb=10)  # must not raise
+
+
 def test_validate_pdf_rejects_missing_file(tmp_path):
     with pytest.raises(FileNotFoundError, match="does not exist"):
         validate_pdf(str(tmp_path / "missing.pdf"), max_size_mb=1)
