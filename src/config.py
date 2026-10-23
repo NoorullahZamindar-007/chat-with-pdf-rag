@@ -43,6 +43,7 @@ class Settings:
     top_k: int
     llm_provider: str
     llm_max_tokens: int
+    llm_timeout: int
     groq_api_key: str
     groq_model: str
     ollama_llm_model: str
@@ -68,7 +69,7 @@ class Settings:
         return self.ollama_llm_model
 
 
-def _validate_settings(chunk_size: int, chunk_overlap: int, max_pdf_mb: int) -> None:
+def _validate_settings(chunk_size: int, chunk_overlap: int, max_pdf_mb: int, llm_timeout: int) -> None:
     """Fail fast on inconsistent chunking/upload limits from the environment."""
     if chunk_size <= 0:
         raise ValueError(f"CHUNK_SIZE must be positive, got {chunk_size}.")
@@ -79,6 +80,8 @@ def _validate_settings(chunk_size: int, chunk_overlap: int, max_pdf_mb: int) -> 
         )
     if max_pdf_mb <= 0:
         raise ValueError(f"MAX_PDF_MB must be positive, got {max_pdf_mb}.")
+    if llm_timeout <= 0:
+        raise ValueError(f"LLM_TIMEOUT must be positive, got {llm_timeout}.")
 
 
 def get_settings() -> Settings:
@@ -88,7 +91,8 @@ def get_settings() -> Settings:
     chunk_size = _int_env("CHUNK_SIZE", 900)
     chunk_overlap = _int_env("CHUNK_OVERLAP", 180)
     max_pdf_mb = _int_env("MAX_PDF_MB", 25)
-    _validate_settings(chunk_size, chunk_overlap, max_pdf_mb)
+    llm_timeout = _int_env("LLM_TIMEOUT", 60)
+    _validate_settings(chunk_size, chunk_overlap, max_pdf_mb, llm_timeout)
 
     return Settings(
         base_dir=BASE_DIR,
@@ -103,6 +107,7 @@ def get_settings() -> Settings:
         top_k=top_k,
         llm_provider=os.getenv("LLM_PROVIDER", "groq"),
         llm_max_tokens=_int_env("LLM_MAX_TOKENS", 1000),
+        llm_timeout=llm_timeout,
         groq_api_key=os.getenv("GROQ_API_KEY", ""),
         groq_model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
         ollama_llm_model=os.getenv(

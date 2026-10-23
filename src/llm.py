@@ -53,6 +53,7 @@ def get_llm_client(settings: Settings | None = None, provider: str | None = None
     settings = settings or get_settings()
     selected = (provider or settings.llm_provider).lower()
     max_tokens = getattr(settings, "llm_max_tokens", 800)
+    timeout = getattr(settings, "llm_timeout", 60)
 
     if selected == "groq":
         # Groq is cloud-based and fast. It needs an API key, which must stay secret.
@@ -64,6 +65,7 @@ def get_llm_client(settings: Settings | None = None, provider: str | None = None
             base_url="https://api.groq.com/openai/v1/chat/completions",
             api_key=settings.groq_api_key,
             max_tokens=max_tokens,
+            timeout=timeout,
         )
 
     if selected == "ollama":
@@ -73,6 +75,7 @@ def get_llm_client(settings: Settings | None = None, provider: str | None = None
             model=settings.ollama_llm_model,
             base_url=settings.ollama_base_url.rstrip("/"),
             max_tokens=max_tokens,
+            timeout=timeout,
         )
 
     raise ValueError("Unsupported LLM provider. Use 'groq' or 'ollama'.")

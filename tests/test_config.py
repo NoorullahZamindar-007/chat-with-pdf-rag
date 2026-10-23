@@ -27,3 +27,18 @@ def test_get_settings_rejects_non_positive_max_pdf_mb(monkeypatch):
     monkeypatch.setenv("MAX_PDF_MB", "-1")
     with pytest.raises(ValueError, match="MAX_PDF_MB"):
         get_settings()
+
+
+def test_llm_timeout_defaults_to_60():
+    assert get_settings().llm_timeout == 60
+
+
+def test_llm_timeout_env_override(monkeypatch):
+    monkeypatch.setenv("LLM_TIMEOUT", "15")
+    assert get_settings().llm_timeout == 15
+
+
+def test_llm_timeout_rejects_non_positive(monkeypatch):
+    monkeypatch.setenv("LLM_TIMEOUT", "0")
+    with pytest.raises(ValueError, match="LLM_TIMEOUT"):
+        get_settings()

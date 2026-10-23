@@ -99,3 +99,30 @@ def test_ollama_connection_error_is_helpful(monkeypatch):
 
     with pytest.raises(RuntimeError, match="Ollama server is not running"):
         llm.generate_answer("hello", settings=settings)
+
+
+def test_generate_answer_uses_configured_llm_timeout(monkeypatch):
+    from types import SimpleNamespace
+
+    from src import llm
+
+    captured = {}
+
+    def fake_urlopen(request, timeout):
+        captured["timeout"] = timeout
+        return FakeHTTPResponse({"choices": [{"message": {"content": "answer"}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="test-key",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+        llm_timeout=7,
+    )
+
+    assert llm.generate_answer("hello", settings=settings) == "answer"
+    assert captured["timeout"] == 7
