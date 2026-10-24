@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from src.rag_chain import (
     FALLBACK_ANSWER,
     answer_question,
@@ -37,6 +39,16 @@ def test_build_prompt_keeps_question_and_pdf_context():
     assert "PDF context:" in prompt
     assert "Question: What is the refund period?" in prompt
     assert "Refunds take 30 days." in prompt
+
+
+def test_answer_question_rejects_blank_question():
+    llm = FakeLLM("ignored")
+    documents = [doc("Refunds take 30 days.", 2)]
+    for blank in ("", "   ", "\n\t "):
+        with pytest.raises(ValueError, match="empty"):
+            answer_question(blank, documents, llm)
+
+    assert llm.messages is None
 
 
 def test_answer_question_without_context_returns_fallback():

@@ -53,6 +53,8 @@ def format_final_answer(answer: str, documents: list[Any]) -> dict:
 
 def answer_question(question: str, documents: list[Any], llm) -> dict:
     """Ask the LLM to answer only from retrieved PDF chunks."""
+    if not question or not question.strip():
+        raise ValueError("The question must not be empty.")
     if not documents:
         return {"answer": FALLBACK_ANSWER, "source_pages": []}
 
