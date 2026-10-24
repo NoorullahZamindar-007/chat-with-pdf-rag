@@ -4,9 +4,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from src.logger import get_logger
+
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env")
+
+logger = get_logger(__name__)
 
 
 def _int_env(name: str, default: int) -> int:
@@ -16,6 +20,14 @@ def _int_env(name: str, default: int) -> int:
     try:
         return int(value)
     except ValueError:
+        # A typo like CHUNK_SIZE=abc would otherwise silently fall back to the
+        # default and be very hard to debug, so say so loudly once per read.
+        logger.warning(
+            "Ignoring invalid integer for %s=%r; using default %s.",
+            name,
+            value,
+            default,
+        )
         return default
 
 

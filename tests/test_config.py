@@ -3,6 +3,15 @@ import pytest
 from src.config import get_settings
 
 
+def test_get_settings_warns_on_invalid_integer_env(monkeypatch, caplog):
+    monkeypatch.setenv("CHUNK_SIZE", "not-a-number")
+    with caplog.at_level("WARNING", logger="src.config"):
+        settings = get_settings()
+    assert settings.chunk_size == 900
+    assert "CHUNK_SIZE" in caplog.text
+    assert "not-a-number" in caplog.text
+
+
 def test_get_settings_defaults_are_valid():
     settings = get_settings()
     assert settings.chunk_size == 900
