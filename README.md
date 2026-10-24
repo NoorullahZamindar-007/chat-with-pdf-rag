@@ -112,9 +112,11 @@ Important variables:
 - `OLLAMA_BASE_URL`: local Ollama server URL
 - `OLLAMA_LLM_MODEL`: Ollama chat model
 - `LLM_MAX_TOKENS`: output token limit
+- `LLM_TIMEOUT`: seconds before an LLM request times out
 - `EMBEDDING_PROVIDER`: `sentence-transformers` or `ollama`
 - `SENTENCE_TRANSFORMER_MODEL`: HuggingFace embedding model
 - `OLLAMA_EMBED_MODEL`: Ollama embedding model
+- `EMBEDDING_BATCH_SIZE`: chunks embedded per ChromaDB write batch
 - `CHROMA_PERSIST_DIR`: ChromaDB persistence directory
 - `TOP_K`: number of chunks to retrieve
 - `MAX_PDF_MB`: upload size limit
