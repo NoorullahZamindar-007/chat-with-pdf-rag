@@ -81,7 +81,15 @@ class Settings:
         return self.ollama_llm_model
 
 
-def _validate_settings(chunk_size: int, chunk_overlap: int, max_pdf_mb: int, llm_timeout: int) -> None:
+def _validate_settings(
+    chunk_size: int,
+    chunk_overlap: int,
+    max_pdf_mb: int,
+    llm_timeout: int,
+    llm_max_tokens: int,
+    embedding_batch_size: int,
+    top_k: int,
+) -> None:
     """Fail fast on inconsistent chunking/upload limits from the environment."""
     if chunk_size <= 0:
         raise ValueError(f"CHUNK_SIZE must be positive, got {chunk_size}.")
@@ -94,6 +102,17 @@ def _validate_settings(chunk_size: int, chunk_overlap: int, max_pdf_mb: int, llm
         raise ValueError(f"MAX_PDF_MB must be positive, got {max_pdf_mb}.")
     if llm_timeout <= 0:
         raise ValueError(f"LLM_TIMEOUT must be positive, got {llm_timeout}.")
+    # These three were read but never validated, so a bad env value (e.g.
+    # LLM_MAX_TOKENS=0 or EMBEDDING_BATCH_SIZE=-1) only surfaced later as
+    # a confusing LLM or ChromaDB error instead of a clear startup error.
+    if llm_max_tokens <= 0:
+        raise ValueError(f"LLM_MAX_TOKENS must be positive, got {llm_max_tokens}.")
+    if embedding_batch_size <= 0:
+        raise ValueError(
+            f"EMBEDDING_BATCH_SIZE must be positive, got {embedding_batch_size}."
+        )
+    if top_k <= 0:
+        raise ValueError(f"TOP_K must be positive, got {top_k}.")
 
 
 def get_settings() -> Settings:
@@ -104,7 +123,17 @@ def get_settings() -> Settings:
     chunk_overlap = _int_env("CHUNK_OVERLAP", 180)
     max_pdf_mb = _int_env("MAX_PDF_MB", 25)
     llm_timeout = _int_env("LLM_TIMEOUT", 60)
-    _validate_settings(chunk_size, chunk_overlap, max_pdf_mb, llm_timeout)
+    llm_max_tokens = _int_env("LLM_MAX_TOKENS", 1000)
+    embedding_batch_size = _int_env("EMBEDDING_BATCH_SIZE", 8)
+    _validate_settings(
+        chunk_size,
+        chunk_overlap,
+        max_pdf_mb,
+        llm_timeout,
+        llm_max_tokens,
+        embedding_batch_size,
+        top_k,
+    )
 
     return Settings(
         base_dir=BASE_DIR,
@@ -118,7 +147,7 @@ def get_settings() -> Settings:
         retrieval_k=top_k,
         top_k=top_k,
         llm_provider=os.getenv("LLM_PROVIDER", "groq"),
-        llm_max_tokens=_int_env("LLM_MAX_TOKENS", 1000),
+        llm_max_tokens=llm_max_tokens,
         llm_timeout=llm_timeout,
         groq_api_key=os.getenv("GROQ_API_KEY", ""),
         groq_model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
@@ -136,6 +165,6 @@ def get_settings() -> Settings:
             "OLLAMA_EMBED_MODEL",
             os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
         ),
-        embedding_batch_size=_int_env("EMBEDDING_BATCH_SIZE", 8),
+        embedding_batch_size=embedding_batch_size,
     )
 

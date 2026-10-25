@@ -51,3 +51,21 @@ def test_llm_timeout_rejects_non_positive(monkeypatch):
     monkeypatch.setenv("LLM_TIMEOUT", "0")
     with pytest.raises(ValueError, match="LLM_TIMEOUT"):
         get_settings()
+
+
+def test_llm_max_tokens_rejects_non_positive(monkeypatch):
+    monkeypatch.setenv("LLM_MAX_TOKENS", "0")
+    with pytest.raises(ValueError, match="LLM_MAX_TOKENS"):
+        get_settings()
+
+
+def test_embedding_batch_size_rejects_non_positive(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_BATCH_SIZE", "-1")
+    with pytest.raises(ValueError, match="EMBEDDING_BATCH_SIZE"):
+        get_settings()
+
+
+def test_top_k_rejects_non_positive(monkeypatch):
+    monkeypatch.setenv("TOP_K", "0")
+    with pytest.raises(ValueError, match="TOP_K"):
+        get_settings()
