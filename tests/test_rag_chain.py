@@ -32,6 +32,16 @@ def test_build_context_includes_page_numbers():
     assert "Refunds take 30 days." in context
 
 
+def test_build_context_and_final_answer_tolerate_none_metadata():
+    chunk = SimpleNamespace(page_content="Refunds take 30 days.", metadata=None)
+
+    assert "[Page unknown]" in build_context([chunk])
+    assert format_final_answer("Some answer", [chunk]) == {
+        "answer": "Some answer",
+        "source_pages": [],
+    }
+
+
 def test_build_prompt_keeps_question_and_pdf_context():
     prompt = build_prompt("What is the refund period?", [doc("Refunds take 30 days.", 2)])
 

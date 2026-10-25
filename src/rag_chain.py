@@ -21,10 +21,19 @@ class Message:
     content: str
 
 
+def _metadata(doc: Any) -> dict:
+    """Return a document's metadata dict, tolerating a None metadata value.
+
+    Some retrievers hand back chunks with metadata=None; without this guard
+    a single such chunk crashed prompt building with AttributeError.
+    """
+    return getattr(doc, "metadata", None) or {}
+
+
 def build_context(documents: list[Any]) -> str:
     """Format retrieved chunks with their page numbers for the LLM."""
     return "\n\n".join(
-        f"[Page {doc.metadata.get('page', doc.metadata.get('page_number', 'unknown'))}]\n"
+        f"[Page {_metadata(doc).get('page', _metadata(doc).get('page_number', 'unknown'))}]\n"
         f"{getattr(doc, 'page_content', getattr(doc, 'text', ''))}"
         for doc in documents
     )
@@ -44,7 +53,7 @@ def format_final_answer(answer: str, documents: list[Any]) -> dict:
         {
             int(page)
             for doc in documents
-            for page in [doc.metadata.get("page", doc.metadata.get("page_number"))]
+            for page in [_metadata(doc).get("page", _metadata(doc).get("page_number"))]
             if str(page).isdigit()
         }
     )
