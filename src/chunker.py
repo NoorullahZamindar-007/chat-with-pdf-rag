@@ -30,6 +30,21 @@ def _page_value(page: Any, name: str, default: Any = None) -> Any:
     return metadata.get(name, value)
 
 
+def _page_number(page: Any) -> int:
+    """Return a page's page number, tolerating string/float/missing values.
+
+    PDF loaders normally emit ints, but a metadata value such as "3",
+    3.0, or a stray non-numeric string used to crash chunking with a
+    bare ValueError/TypeError and lose the whole document. Fall back to
+    page 0 instead so one odd page number cannot drop the rest.
+    """
+    raw = _page_value(page, "page_number", 0)
+    try:
+        return int(float(raw))
+    except (TypeError, ValueError):
+        return 0
+
+
 def chunk_pages(
     pages: list,
     chunk_size: int = 900,
@@ -55,7 +70,7 @@ def chunk_pages(
 
         document_id = _page_value(page, "document_id", "unknown_document")
         file_name = _page_value(page, "file_name", "unknown.pdf")
-        page_number = int(_page_value(page, "page_number", 0))
+        page_number = _page_number(page)
 
         # Chunk indexes restart per page, which keeps chunk IDs readable and stable.
         for chunk_index, raw_chunk in enumerate(splitter.split_text(text)):

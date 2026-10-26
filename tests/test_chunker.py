@@ -74,6 +74,25 @@ def test_chunk_pages_raises_when_no_chunks_created(monkeypatch):
         chunk_pages([page("   ")], chunk_size=100, chunk_overlap=10)
 
 
+def test_chunk_pages_tolerates_non_int_page_numbers(monkeypatch):
+    install_fake_splitter(monkeypatch)
+    from src.chunker import chunk_pages
+
+    # A string page number parses, a float truncates, and a non-numeric
+    # value falls back to page 0 instead of dropping the whole document.
+    chunks = chunk_pages(
+        [
+            page("first page", page_number="3"),
+            page("second page", page_number=4.7),
+            page("third page", page_number="not-a-page"),
+        ],
+        chunk_size=50,
+        chunk_overlap=5,
+    )
+
+    assert [chunk.page_number for chunk in chunks] == [3, 4, 0]
+
+
 def test_chunk_pages_adds_required_metadata(monkeypatch):
     install_fake_splitter(monkeypatch)
     from src.chunker import chunk_pages
