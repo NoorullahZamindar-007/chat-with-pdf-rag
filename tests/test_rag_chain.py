@@ -78,6 +78,18 @@ def test_format_final_answer_adds_unique_sorted_source_pages():
     assert final["source_pages"] == [2, 4]
 
 
+def test_format_final_answer_keeps_integral_float_and_string_pages():
+    # A retriever may hand back 3.0 or "3"; both are page 3, and a
+    # cited chunk used to vanish from source_pages in that case.
+    # Non-integral floats and negative values are still not pages.
+    final = format_final_answer(
+        "Answer.",
+        [doc("A", 3.0), doc("B", "3"), doc("C", 3.5), doc("D", -1)],
+    )
+
+    assert final["source_pages"] == [3]
+
+
 def test_answer_question_passes_prompt_to_llm_and_keeps_sources():
     llm = FakeLLM("The refund period is 30 days.")
 

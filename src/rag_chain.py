@@ -48,13 +48,40 @@ def _response_text(response) -> str:
     return getattr(response, "content", str(response)).strip()
 
 
+def _source_page(page: Any) -> int | None:
+    """Parse a cited page number, or None when it is not a page.
+
+    Chunks can carry page numbers as ints, digit strings, or integral
+    floats (3.0 from a JSON retriever); the old str.isdigit() check
+    dropped 3.0 entirely, so a cited chunk vanished from source_pages
+    even though build_context cited it as [Page 3.0]. Non-integral
+    floats (3.5) and negative values are still not pages.
+    """
+    if isinstance(page, bool):
+        return None
+    try:
+        value = float(page)
+    except (TypeError, ValueError):
+        return None
+    if value != value or value in (float("inf"), float("-inf")):
+        return None
+    number = int(value)
+    if number != value or number < 0:
+        return None
+    return number
+
+
 def format_final_answer(answer: str, documents: list[Any]) -> dict:
     pages = sorted(
         {
-            int(page)
+            page_number
             for doc in documents
-            for page in [_metadata(doc).get("page", _metadata(doc).get("page_number"))]
-            if str(page).isdigit()
+            for page_number in [
+                _source_page(
+                    _metadata(doc).get("page", _metadata(doc).get("page_number"))
+                )
+            ]
+            if page_number is not None
         }
     )
     return {"answer": answer.strip() or FALLBACK_ANSWER, "source_pages": pages}
