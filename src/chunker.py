@@ -41,7 +41,10 @@ def _page_number(page: Any) -> int:
     raw = _page_value(page, "page_number", 0)
     try:
         return int(float(raw))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
+        # int(float("inf")) raises OverflowError, not ValueError: a
+        # non-finite page number must fall back to page 0 like any
+        # other unparseable value, not crash chunking.
         return 0
 
 

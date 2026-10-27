@@ -93,6 +93,25 @@ def test_chunk_pages_tolerates_non_int_page_numbers(monkeypatch):
     assert [chunk.page_number for chunk in chunks] == [3, 4, 0]
 
 
+def test_chunk_pages_tolerates_non_finite_page_numbers(monkeypatch):
+    install_fake_splitter(monkeypatch)
+    from src.chunker import chunk_pages
+
+    # int(float("inf")) raises OverflowError, not ValueError, so a
+    # non-finite page number used to crash chunking instead of
+    # falling back to page 0 like other unparseable values.
+    chunks = chunk_pages(
+        [
+            page("first page", page_number=float("inf")),
+            page("second page", page_number=float("nan")),
+        ],
+        chunk_size=50,
+        chunk_overlap=5,
+    )
+
+    assert [chunk.page_number for chunk in chunks] == [0, 0]
+
+
 def test_chunk_pages_adds_required_metadata(monkeypatch):
     install_fake_splitter(monkeypatch)
     from src.chunker import chunk_pages
