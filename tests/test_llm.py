@@ -80,6 +80,50 @@ def test_generate_answer_uses_groq_payload(monkeypatch):
     assert "secret-key" not in str(captured["payload"])
 
 
+def test_null_llm_content_is_an_unexpected_response_error(monkeypatch):
+    """A null content field must not escape as a bare AttributeError.
+
+    Both providers call .strip() on the reply content; a model reply
+    with content=None (filtered/empty) used to leak AttributeError to
+    the user instead of the clean "unexpected response" error.
+    """
+    from src import llm
+
+    def fake_groq_urlopen(request, timeout):
+        return FakeHTTPResponse({"choices": [{"message": {"content": None}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_groq_urlopen)
+
+    groq_settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="secret-key",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError, match="unexpected response"):
+        llm.generate_answer("hello", settings=groq_settings)
+
+    def fake_ollama_urlopen(request, timeout):
+        return FakeHTTPResponse({"message": {"content": None}})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_ollama_urlopen)
+
+    ollama_settings = SimpleNamespace(
+        llm_provider="ollama",
+        groq_api_key="",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError, match="unexpected response"):
+        llm.generate_answer("hello", settings=ollama_settings)
+
+
 def test_ollama_connection_error_is_helpful(monkeypatch):
     from src import llm
 

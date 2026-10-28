@@ -154,7 +154,10 @@ def _generate_with_groq(client: LLMClient, prompt: str) -> str:
             client.timeout,
         )
         answer = response["choices"][0]["message"]["content"].strip()
-    except (KeyError, IndexError, TypeError) as exc:
+    # A null content (e.g. a filtered/empty reply) makes .strip() raise
+    # AttributeError, which used to escape as a bare AttributeError
+    # instead of the clean "unexpected response" error below.
+    except (KeyError, IndexError, TypeError, AttributeError) as exc:
         logger.exception("LLM answer failed")
         raise RuntimeError("API request failed: Groq returned an unexpected response.") from exc
     except Exception:
@@ -190,7 +193,7 @@ def _generate_with_ollama(client: LLMClient, prompt: str) -> str:
 
     try:
         answer = response["message"]["content"].strip()
-    except (KeyError, TypeError) as exc:
+    except (KeyError, TypeError, AttributeError) as exc:  # None content: see Groq path above.
         logger.exception("LLM answer failed")
         raise RuntimeError("API request failed: Ollama returned an unexpected response.") from exc
     logger.info("LLM answer completed: provider=ollama model=%s", client.model)
