@@ -145,9 +145,21 @@ def index_documents(vector_store, documents: list, collection_name: str) -> None
 
     ids = [_chunk_id(doc, f"{collection_name}_{index}") for index, doc in enumerate(documents)]
     existing = _existing_ids(vector_store, ids)
-    texts = [_chunk_text(doc) for doc, doc_id in zip(documents, ids) if doc_id not in existing]
-    metadatas = [_chunk_metadata(doc) for doc, doc_id in zip(documents, ids) if doc_id not in existing]
-    new_ids = [doc_id for doc_id in ids if doc_id not in existing]
+    # Build the three lists in one pass, like add_chunks_to_vector_store:
+    # empty-text chunks are skipped instead of reaching the embedding
+    # backend, and the lists cannot drift out of alignment.
+    texts: list[str] = []
+    metadatas: list[dict] = []
+    new_ids: list[str] = []
+    for doc, doc_id in zip(documents, ids):
+        if doc_id in existing:
+            continue
+        text = _chunk_text(doc)
+        if not text:
+            continue
+        texts.append(text)
+        metadatas.append(_chunk_metadata(doc))
+        new_ids.append(doc_id)
 
     if new_ids:
         logger.info("Embedding started: collection=%s chunks=%s", collection_name, len(new_ids))
