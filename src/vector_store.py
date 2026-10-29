@@ -75,6 +75,11 @@ def _existing_ids(vector_store: Any, ids: list[str]) -> set[str]:
     try:
         existing = vector_store.get(ids=ids)
     except Exception:
+        # Do not swallow the backend error silently: callers treat an
+        # empty result as "nothing exists yet" and re-add every chunk,
+        # so a lost error here surfaces later as a confusing duplicate
+        # or embedding failure instead of the real Chroma problem.
+        logger.exception("Could not check existing chunk IDs; treating all as new")
         return set()
     return set(existing.get("ids", []) or [])
 
