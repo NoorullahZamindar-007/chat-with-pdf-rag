@@ -1,3 +1,4 @@
+import hashlib
 from html import escape
 from pathlib import Path
 
@@ -338,6 +339,7 @@ def init_session_state() -> None:
         "page_count": 0,
         "chunk_count": 0,
         "file_name": None,
+        "indexed_upload": None,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -417,6 +419,7 @@ def reset_current_document() -> None:
     st.session_state.page_count = 0
     st.session_state.chunk_count = 0
     st.session_state.file_name = None
+    st.session_state.indexed_upload = None
     st.session_state.messages = []
     st.success("Vector database entries for this document were reset.")
 
@@ -524,6 +527,21 @@ def answer_user_question(question: str, settings) -> dict:
     }
 
 
+def _upload_signature(uploaded_file, settings):
+    """Content hash + embedding settings for the uploaded PDF.
+
+    Streamlit reruns the script on every interaction while the uploader
+    value persists, so without this every chat turn would re-run the
+    whole indexing pipeline. A settings change still re-indexes because
+    the embedding key is part of the signature.
+    """
+    try:
+        data = uploaded_file.getvalue()  # does not consume a Streamlit upload
+    except Exception:
+        return (getattr(uploaded_file, "name", None), getattr(uploaded_file, "size", None))
+    return (hashlib.sha256(data).hexdigest(), embedding_key(settings))
+
+
 def render_upload_area(sidebar_file, settings):
     st.markdown('<div class="section-title">Upload and index</div>', unsafe_allow_html=True)
     main_file = st.file_uploader("Upload PDF", type=["pdf"], key="main_pdf")
@@ -531,6 +549,10 @@ def render_upload_area(sidebar_file, settings):
 
     if uploaded_file is None:
         st.info("Upload a PDF in the sidebar or here to start.")
+        return
+
+    signature = _upload_signature(uploaded_file, settings)
+    if signature == st.session_state.get("indexed_upload"):
         return
 
     try:
@@ -568,6 +590,7 @@ def render_upload_area(sidebar_file, settings):
         st.session_state.page_count = result["page_count"]
         st.session_state.chunk_count = result["chunk_count"]
         st.session_state.file_name = result["file_name"]
+        st.session_state.indexed_upload = signature
         show_index_result(result)
 
 
