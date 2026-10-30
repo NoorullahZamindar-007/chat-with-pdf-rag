@@ -27,7 +27,13 @@ def _load_qa_file(qa_file: str) -> list[dict[str, Any]]:
             line = line.strip()
             if not line:
                 continue
-            item = json.loads(line)
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError as exc:
+                # A bare JSONDecodeError names the column but not which
+                # line of the QA file broke, so a bad line in a long
+                # file was painful to locate.
+                raise ValueError(f"Invalid JSON on line {line_number}: {exc}") from exc
             if "question" not in item or "reference_answer" not in item:
                 raise ValueError(f"Missing question/reference_answer on line {line_number}.")
             item.setdefault("expected_pages", [])
