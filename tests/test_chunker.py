@@ -66,6 +66,16 @@ def test_chunk_pages_rejects_overlap_greater_than_or_equal_to_size(monkeypatch):
         chunk_pages([page("text")], chunk_size=100, chunk_overlap=100)
 
 
+def test_chunk_pages_rejects_negative_overlap(monkeypatch):
+    install_fake_splitter(monkeypatch)
+    from src.chunker import chunk_pages
+
+    # Only overlap >= size was checked, so a negative overlap slipped
+    # through to the splitter instead of failing with a clear error.
+    with pytest.raises(ValueError, match="chunk_overlap"):
+        chunk_pages([page("text")], chunk_size=100, chunk_overlap=-5)
+
+
 def test_chunk_pages_raises_when_no_chunks_created(monkeypatch):
     install_fake_splitter(monkeypatch)
     from src.chunker import chunk_pages

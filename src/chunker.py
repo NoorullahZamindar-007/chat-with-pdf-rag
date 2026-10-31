@@ -56,6 +56,8 @@ def chunk_pages(
     """Split extracted PDF pages into stable, metadata-rich text chunks."""
     if chunk_size <= 0:
         raise ValueError("chunk_size must be greater than 0.")
+    if chunk_overlap < 0:
+        raise ValueError("chunk_overlap must not be negative.")
     if chunk_overlap >= chunk_size:
         raise ValueError("chunk_overlap must be smaller than chunk_size.")
 

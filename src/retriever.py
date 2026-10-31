@@ -19,6 +19,10 @@ def retrieve_relevant_chunks(
     top_k: int = 5,
 ) -> list[dict]:
     """Retrieve top matching chunks for one PDF document."""
+    if not question or not question.strip():
+        raise ValueError("question must not be blank.")
+    if top_k <= 0:
+        raise ValueError(f"top_k must be positive, got {top_k}.")
     logger.info("Retrieval started: collection=%s document_id=%s", collection_name, document_id)
     vector_store = get_vector_store(collection_name)
     metadata_filter = {"document_id": document_id}
