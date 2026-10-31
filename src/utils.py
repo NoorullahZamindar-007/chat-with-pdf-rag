@@ -28,7 +28,10 @@ def ensure_directories(*paths: Path | str) -> None:
 
 
 def format_source_pages(pages: list[int]) -> str:
-    if not pages:
+    # Retrieval returns pages in relevance order with repeats (one per
+    # matching chunk), so sort and dedupe for a readable citation list.
+    unique_pages = sorted(set(pages))
+    if not unique_pages:
         return "No source pages"
-    label = "page" if len(pages) == 1 else "pages"
-    return f"{label} {', '.join(str(page) for page in pages)}"
+    label = "page" if len(unique_pages) == 1 else "pages"
+    return f"{label} {', '.join(str(page) for page in unique_pages)}"

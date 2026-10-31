@@ -13,6 +13,12 @@ def test_format_source_pages_empty():
     assert format_source_pages([]) == "No source pages"
 
 
+def test_format_source_pages_sorts_and_dedupes():
+    # Retrieval yields pages in relevance order with one entry per chunk.
+    assert format_source_pages([7, 2, 7, 4]) == "pages 2, 4, 7"
+    assert format_source_pages([3, 3]) == "page 3"
+
+
 def test_ensure_directories_creates_nested_paths(tmp_path):
     target = tmp_path / "a" / "b" / "uploads"
 
