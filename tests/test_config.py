@@ -69,3 +69,25 @@ def test_top_k_rejects_non_positive(monkeypatch):
     monkeypatch.setenv("TOP_K", "0")
     with pytest.raises(ValueError, match="TOP_K"):
         get_settings()
+
+
+def test_llm_provider_rejects_unknown(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "grop")
+    with pytest.raises(ValueError, match="LLM_PROVIDER"):
+        get_settings()
+
+
+def test_llm_provider_accepts_case_variant(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "Ollama")
+    assert get_settings().llm_provider == "Ollama"
+
+
+def test_embedding_provider_rejects_unknown(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
+    with pytest.raises(ValueError, match="EMBEDDING_PROVIDER"):
+        get_settings()
+
+
+def test_embedding_provider_accepts_underscore_alias(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "sentence_transformers")
+    assert get_settings().embedding_provider == "sentence_transformers"

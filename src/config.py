@@ -89,6 +89,8 @@ def _validate_settings(
     llm_max_tokens: int,
     embedding_batch_size: int,
     top_k: int,
+    llm_provider: str,
+    embedding_provider: str,
 ) -> None:
     """Fail fast on inconsistent chunking/upload limits from the environment."""
     if chunk_size <= 0:
@@ -113,6 +115,24 @@ def _validate_settings(
         )
     if top_k <= 0:
         raise ValueError(f"TOP_K must be positive, got {top_k}.")
+    # A typo'd provider (e.g. LLM_PROVIDER=grop) used to pass startup and
+    # only fail at the first chat/embedding call with a confusing error
+    # from deep in the pipeline; the other settings already fail fast,
+    # so providers do too. Normalisation matches get_llm_client and
+    # get_embedding_function (case-insensitive, underscores as dashes).
+    if llm_provider.lower() not in {"groq", "ollama"}:
+        raise ValueError(
+            f"LLM_PROVIDER must be 'groq' or 'ollama', got {llm_provider!r}."
+        )
+    if embedding_provider.lower().replace("_", "-") not in {
+        "sentence-transformers",
+        "huggingface",
+        "ollama",
+    }:
+        raise ValueError(
+            "EMBEDDING_PROVIDER must be 'sentence-transformers', "
+            f"'huggingface' or 'ollama', got {embedding_provider!r}."
+        )
 
 
 def get_settings() -> Settings:
@@ -125,6 +145,8 @@ def get_settings() -> Settings:
     llm_timeout = _int_env("LLM_TIMEOUT", 60)
     llm_max_tokens = _int_env("LLM_MAX_TOKENS", 1000)
     embedding_batch_size = _int_env("EMBEDDING_BATCH_SIZE", 8)
+    llm_provider = os.getenv("LLM_PROVIDER", "groq")
+    embedding_provider = os.getenv("EMBEDDING_PROVIDER", "sentence-transformers")
     _validate_settings(
         chunk_size,
         chunk_overlap,
@@ -133,6 +155,8 @@ def get_settings() -> Settings:
         llm_max_tokens,
         embedding_batch_size,
         top_k,
+        llm_provider,
+        embedding_provider,
     )
 
     return Settings(
@@ -146,7 +170,7 @@ def get_settings() -> Settings:
         chunk_overlap=chunk_overlap,
         retrieval_k=top_k,
         top_k=top_k,
-        llm_provider=os.getenv("LLM_PROVIDER", "groq"),
+        llm_provider=llm_provider,
         llm_max_tokens=llm_max_tokens,
         llm_timeout=llm_timeout,
         groq_api_key=os.getenv("GROQ_API_KEY", ""),
@@ -156,7 +180,7 @@ def get_settings() -> Settings:
             os.getenv("OLLAMA_MODEL", "llama3.1"),
         ),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        embedding_provider=os.getenv("EMBEDDING_PROVIDER", "sentence-transformers"),
+        embedding_provider=embedding_provider,
         sentence_transformer_model=os.getenv(
             "SENTENCE_TRANSFORMER_MODEL",
             os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
