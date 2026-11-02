@@ -64,6 +64,15 @@ def retrieve_relevant_chunks(
 
 def retrieve_documents(vector_store: Any, question: str, k: int | None = None) -> list[Any]:
     """Compatibility helper for the Streamlit RAG chain."""
+    # The main retrieval path rejects blank questions and non-positive k,
+    # but this helper passed them straight through: a blank question
+    # wasted an embedding call and failed deep in the vector store, and
+    # k=0 was silently swallowed by the `k or settings.top_k` fallback
+    # instead of erroring like top_k=0 does above.
+    if not question or not question.strip():
+        raise ValueError("question must not be blank.")
+    if k is not None and k <= 0:
+        raise ValueError(f"k must be positive, got {k}.")
     settings = get_settings()
     logger.info("Retrieval started")
     try:

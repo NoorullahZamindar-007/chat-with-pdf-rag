@@ -34,6 +34,12 @@ def _load_qa_file(qa_file: str) -> list[dict[str, Any]]:
                 # line of the QA file broke, so a bad line in a long
                 # file was painful to locate.
                 raise ValueError(f"Invalid JSON on line {line_number}: {exc}") from exc
+            # A valid JSON line need not be an object: a string line
+            # containing "question" passed the membership check below
+            # (substring test) and then crashed on setdefault with an
+            # AttributeError, and a number line crashed with TypeError.
+            if not isinstance(item, dict):
+                raise ValueError(f"Expected a JSON object on line {line_number}.")
             if "question" not in item or "reference_answer" not in item:
                 raise ValueError(f"Missing question/reference_answer on line {line_number}.")
             item.setdefault("expected_pages", [])
