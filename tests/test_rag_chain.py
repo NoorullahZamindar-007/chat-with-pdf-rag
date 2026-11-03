@@ -98,3 +98,14 @@ def test_answer_question_passes_prompt_to_llm_and_keeps_sources():
     assert result["answer"] == "The refund period is 30 days."
     assert result["source_pages"] == [2]
     assert "Question: What is the refund period?" in llm.messages[-1].content
+
+
+def test_answer_question_falls_back_when_llm_content_is_none():
+    # An LLM wrapper may return content=None for an empty response;
+    # that used to crash _response_text on .strip() instead of
+    # returning the fallback answer like an empty reply does.
+    llm = FakeLLM(None)
+
+    result = answer_question("What is the refund period?", [doc("Refunds take 30 days.", 2)], llm)
+
+    assert result == {"answer": FALLBACK_ANSWER, "source_pages": [2]}

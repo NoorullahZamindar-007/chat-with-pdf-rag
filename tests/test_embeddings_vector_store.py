@@ -148,3 +148,42 @@ def test_retrieve_relevant_chunks_filters_by_document_id(monkeypatch):
             "metadata": {"document_id": "doc", "page_number": 4, "chunk_id": "c1"},
         }
     ]
+
+
+def test_add_chunks_to_vector_store_drops_in_batch_duplicate_ids(monkeypatch):
+    from src import vector_store
+
+    class FakeStore:
+        def __init__(self):
+            self.added = []
+
+        def get(self, ids):
+            return {"ids": []}
+
+        def add_texts(self, texts, metadatas, ids):
+            self.added.append((texts, metadatas, ids))
+
+        def persist(self):
+            pass
+
+    store = FakeStore()
+    monkeypatch.setattr(vector_store, "get_vector_store", lambda collection_name: store)
+
+    chunks = [
+        SimpleNamespace(
+            chunk_id="doc_page_1_chunk_0",
+            text="first copy",
+            metadata={"document_id": "doc"},
+        ),
+        SimpleNamespace(
+            chunk_id="doc_page_1_chunk_0",
+            text="second copy, same id",
+            metadata={"document_id": "doc"},
+        ),
+    ]
+
+    added_ids = vector_store.add_chunks_to_vector_store(chunks, "pdf_docs")
+
+    assert added_ids == ["doc_page_1_chunk_0"]
+    assert store.added[0][0] == ["first copy"]
+    assert store.added[0][2] == ["doc_page_1_chunk_0"]

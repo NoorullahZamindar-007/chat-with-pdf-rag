@@ -117,12 +117,20 @@ def add_chunks_to_vector_store(chunks, collection_name: str) -> list[str]:
     texts: list[str] = []
     metadatas: list[dict] = []
     new_ids: list[str] = []
+    # Chunk IDs are supposed to be unique per document/page/chunk, but a
+    # caller passing the same chunk twice (or two chunks built from the
+    # same page with the same index) used to hand Chroma duplicate IDs
+    # in one add_texts call, which fails or silently overwrites. Drop
+    # in-batch repeats; the existing-IDs check above only covers what
+    # is already stored, not repeats inside this batch.
+    seen: set[str] = set()
     for chunk, chunk_id in zip(chunks, ids):
-        if chunk_id in existing:
+        if chunk_id in existing or chunk_id in seen:
             continue
         text = _chunk_text(chunk)
         if not text:
             continue
+        seen.add(chunk_id)
         metadata = _chunk_metadata(chunk)
         metadata.setdefault("chunk_id", chunk_id)
         texts.append(text)
@@ -156,12 +164,17 @@ def index_documents(vector_store, documents: list, collection_name: str) -> None
     texts: list[str] = []
     metadatas: list[dict] = []
     new_ids: list[str] = []
+    # Same in-batch duplicate-ID guard as add_chunks_to_vector_store:
+    # without it, two documents sharing a chunk ID fail or overwrite
+    # each other inside a single add_texts call.
+    seen: set[str] = set()
     for doc, doc_id in zip(documents, ids):
-        if doc_id in existing:
+        if doc_id in existing or doc_id in seen:
             continue
         text = _chunk_text(doc)
         if not text:
             continue
+        seen.add(doc_id)
         texts.append(text)
         metadatas.append(_chunk_metadata(doc))
         new_ids.append(doc_id)

@@ -45,7 +45,16 @@ def build_prompt(question: str, documents: list[Any]) -> str:
 
 
 def _response_text(response) -> str:
-    return getattr(response, "content", str(response)).strip()
+    # Some LLM wrappers return content=None (empty response) or a
+    # non-string payload; getattr's default only covers a missing
+    # attribute, so None used to crash here with AttributeError on
+    # .strip() and lose the whole answer instead of falling back.
+    content = getattr(response, "content", None)
+    if content is None:
+        return ""
+    if not isinstance(content, str):
+        content = str(content)
+    return content.strip()
 
 
 def _source_page(page: Any) -> int | None:
