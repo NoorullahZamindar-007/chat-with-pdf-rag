@@ -1,0 +1,111 @@
+from types import SimpleNamespace
+
+import pytest
+
+from src.rag_chain import (
+    FALLBACK_ANSWER,
+    answer_question,
+    build_context,
+    build_prompt,
+    format_final_answer,
+)
+
+
+class FakeLLM:
+    def __init__(self, text):
+        self.text = text
+        self.messages = None
+
+    def invoke(self, messages):
+        self.messages = messages
+        return SimpleNamespace(content=self.text)
+
+
+def doc(text, page):
+    return SimpleNamespace(page_content=text, metadata={"page": page})
+
+
+def test_build_context_includes_page_numbers():
+    context = build_context([doc("Refunds take 30 days.", 2)])
+
+    assert "[Page 2]" in context
+    assert "Refunds take 30 days." in context
+
+
+def test_build_context_and_final_answer_tolerate_none_metadata():
+    chunk = SimpleNamespace(page_content="Refunds take 30 days.", metadata=None)
+
+    assert "[Page unknown]" in build_context([chunk])
+    assert format_final_answer("Some answer", [chunk]) == {
+        "answer": "Some answer",
+        "source_pages": [],
+    }
+
+
+def test_build_prompt_keeps_question_and_pdf_context():
+    prompt = build_prompt("What is the refund period?", [doc("Refunds take 30 days.", 2)])
+
+    assert "Do not use outside knowledge" in prompt
+    assert "PDF context:" in prompt
+    assert "Question: What is the refund period?" in prompt
+    assert "Refunds take 30 days." in prompt
+
+
+def test_answer_question_rejects_blank_question():
+    llm = FakeLLM("ignored")
+    documents = [doc("Refunds take 30 days.", 2)]
+    for blank in ("", "   ", "\n\t "):
+        with pytest.raises(ValueError, match="empty"):
+            answer_question(blank, documents, llm)
+
+    assert llm.messages is None
+
+
+def test_answer_question_without_context_returns_fallback():
+    result = answer_question("What is the policy?", [], FakeLLM("ignored"))
+
+    assert result["answer"] == FALLBACK_ANSWER
+    assert result["source_pages"] == []
+
+
+def test_format_final_answer_adds_unique_sorted_source_pages():
+    final = format_final_answer(
+        "The refund period is 30 days.",
+        [doc("A", 4), doc("B", 2), doc("C", 4)],
+    )
+
+    assert final["answer"] == "The refund period is 30 days."
+    assert final["source_pages"] == [2, 4]
+
+
+def test_format_final_answer_keeps_integral_float_and_string_pages():
+    # A retriever may hand back 3.0 or "3"; both are page 3, and a
+    # cited chunk used to vanish from source_pages in that case.
+    # Non-integral floats and negative values are still not pages.
+    final = format_final_answer(
+        "Answer.",
+        [doc("A", 3.0), doc("B", "3"), doc("C", 3.5), doc("D", -1)],
+    )
+
+    assert final["source_pages"] == [3]
+
+
+def test_answer_question_passes_prompt_to_llm_and_keeps_sources():
+    llm = FakeLLM("The refund period is 30 days.")
+
+    result = answer_question("What is the refund period?", [doc("Refunds take 30 days.", 2)], llm)
+
+    assert result["answer"] == "The refund period is 30 days."
+    assert result["source_pages"] == [2]
+    assert "Question: What is the refund period?" in llm.messages[-1].content
+
+
+def test_answer_question_falls_back_when_llm_content_is_none():
+    # An LLM wrapper may return content=None for an empty response;
+    # that used to crash _response_text on .strip() instead of
+    # returning the fallback answer like an empty reply does.
+    llm = FakeLLM(None)
+
+    result = answer_question("What is the refund period?", [doc("Refunds take 30 days.", 2)], llm)
+
+    assert result == {"answer": FALLBACK_ANSWER, "source_pages": [2]}
