@@ -27,6 +27,28 @@ def ensure_directories(*paths: Path | str) -> None:
         Path(path).mkdir(parents=True, exist_ok=True)
 
 
+def embedding_key(settings) -> str:
+    """Keep Chroma collections separate when embedding or chunk settings change.
+
+    Lives here instead of app.py so the test suite can import it without
+    Streamlit: app.py imports streamlit at module level, which used to make
+    the embedding-key test fail in any environment without streamlit
+    installed even though the function itself is pure.
+    """
+    model = (
+        settings.ollama_embed_model
+        if settings.embedding_provider == "ollama"
+        else settings.sentence_transformer_model
+    )
+    return f"{settings.embedding_provider}:{model}:chunk-{settings.chunk_size}:overlap-{settings.chunk_overlap}"
+
+
+def document_collection_name(document_id: str, settings) -> str:
+    from src.vector_store import collection_name_for_hash
+
+    return collection_name_for_hash(document_id, embedding_key(settings))
+
+
 def format_source_pages(pages: list[int]) -> str:
     # Retrieval returns pages in relevance order with repeats (one per
     # matching chunk), so sort and dedupe for a readable citation list.

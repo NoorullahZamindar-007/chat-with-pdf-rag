@@ -24,8 +24,11 @@ def test_get_settings_reads_embedding_env(monkeypatch):
     assert settings.top_k == 7
 
 
-def test_embedding_key_includes_chunk_settings(): 
-    from app import embedding_key
+def test_embedding_key_includes_chunk_settings():
+    # Imported from src.utils, not app: app imports streamlit at module
+    # level, which used to fail this pure-function test wherever
+    # streamlit was not installed.
+    from src.utils import embedding_key
 
     base = SimpleNamespace(
         embedding_provider="sentence-transformers",

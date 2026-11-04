@@ -17,12 +17,11 @@ from src.pdf_loader import (
     validate_pdf_upload,
 )
 from src.rag_chain import answer_question   
-from src.utils import ensure_directories, generate_document_id
-from src.vector_store import ( 
+from src.utils import document_collection_name, embedding_key, ensure_directories, generate_document_id
+from src.vector_store import (
     add_chunks_to_vector_store,
-    collection_name_for_hash,
     get_vector_store,
-) 
+)
  
 
 logger = get_logger(__name__)
@@ -313,20 +312,6 @@ def render_document_status() -> None:
         """,
         unsafe_allow_html=True,
     )
-
-
-def embedding_key(settings) -> str:
-    """Keep Chroma collections separate when embedding or chunk settings change."""
-    model = (
-        settings.ollama_embed_model
-        if settings.embedding_provider == "ollama"
-        else settings.sentence_transformer_model
-    )
-    return f"{settings.embedding_provider}:{model}:chunk-{settings.chunk_size}:overlap-{settings.chunk_overlap}"
-
-
-def document_collection_name(document_id: str, settings) -> str:
-    return collection_name_for_hash(document_id, embedding_key(settings))
 
 
 def init_session_state() -> None:
