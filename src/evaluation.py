@@ -59,12 +59,25 @@ def _docs_from_retrieved_chunks(chunks: list[dict]) -> list[Any]:
 
 
 def _unique_ints(values) -> list[int]:
+    """Collect distinct page numbers, keeping only integral values.
+
+    The old int(value) silently truncated non-integral floats (3.5
+    became page 3, inventing a retrieval hit) and counted booleans
+    (True became page 1). Only real page numbers survive now.
+    """
     pages = []
     for value in values or []:
+        if isinstance(value, bool):
+            continue
         try:
-            pages.append(int(value))
+            number = float(value)
         except (TypeError, ValueError):
             continue
+        if number != number or number in (float("inf"), float("-inf")):
+            continue
+        if int(number) != number or number < 0:
+            continue
+        pages.append(int(number))
     return sorted(set(pages))
 
 
