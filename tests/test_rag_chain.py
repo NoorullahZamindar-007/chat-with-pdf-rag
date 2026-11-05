@@ -42,6 +42,17 @@ def test_build_context_and_final_answer_tolerate_none_metadata():
     }
 
 
+def test_build_context_skips_empty_text_chunks():
+    # An empty-text chunk used to add a bare "[Page 3]" block with no
+    # content, which the LLM could read as a cited source.
+    context = build_context([doc("", 3), doc("Refunds take 30 days.", 2)])
+
+    assert "[Page 3]" not in context
+    assert "[Page 2]" in context
+    assert "Refunds take 30 days." in context
+    assert build_context([doc("", 3)]) == ""
+
+
 def test_build_prompt_keeps_question_and_pdf_context():
     prompt = build_prompt("What is the refund period?", [doc("Refunds take 30 days.", 2)])
 

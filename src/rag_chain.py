@@ -32,11 +32,19 @@ def _metadata(doc: Any) -> dict:
 
 def build_context(documents: list[Any]) -> str:
     """Format retrieved chunks with their page numbers for the LLM."""
-    return "\n\n".join(
-        f"[Page {_metadata(doc).get('page', _metadata(doc).get('page_number', 'unknown'))}]\n"
-        f"{getattr(doc, 'page_content', getattr(doc, 'text', ''))}"
-        for doc in documents
-    )
+    blocks = []
+    for doc in documents:
+        text = getattr(doc, "page_content", getattr(doc, "text", ""))
+        # An empty-text chunk used to contribute a bare "[Page 3]" block
+        # with nothing after it, which reads to the LLM as a cited source
+        # with no content; skip it so citations only cover real text.
+        if not text:
+            continue
+        blocks.append(
+            f"[Page {_metadata(doc).get('page', _metadata(doc).get('page_number', 'unknown'))}]\n"
+            f"{text}"
+        )
+    return "\n\n".join(blocks)
 
 
 def build_prompt(question: str, documents: list[Any]) -> str:
