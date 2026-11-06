@@ -325,6 +325,7 @@ def init_session_state() -> None:
         "chunk_count": 0,
         "file_name": None,
         "indexed_upload": None,
+        "failed_upload": None,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -539,6 +540,13 @@ def render_upload_area(sidebar_file, settings):
     signature = _upload_signature(uploaded_file, settings)
     if signature == st.session_state.get("indexed_upload"):
         return
+    # A failed index used to be retried on every Streamlit rerun while
+    # the uploader value persisted, so one bad PDF re-ran the whole
+    # pipeline (and re-showed the error) on every chat interaction.
+    # Remember the failed signature and skip it until the file or the
+    # embedding settings change, which produces a new signature.
+    if signature == st.session_state.get("failed_upload"):
+        return
 
     try:
         with st.spinner("Indexing PDF..."):
@@ -576,7 +584,12 @@ def render_upload_area(sidebar_file, settings):
         st.session_state.chunk_count = result["chunk_count"]
         st.session_state.file_name = result["file_name"]
         st.session_state.indexed_upload = signature
+        st.session_state.failed_upload = None
         show_index_result(result)
+        return
+    # Reached only when indexing raised: record the failure so the
+    # next rerun does not retry this same file and settings.
+    st.session_state.failed_upload = signature
 
 
 def handle_chat(settings) -> None:
