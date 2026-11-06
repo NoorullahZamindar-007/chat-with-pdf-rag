@@ -40,8 +40,13 @@ def build_context(documents: list[Any]) -> str:
         # with no content; skip it so citations only cover real text.
         if not text:
             continue
+        # Render the page the same way source_pages reports it: an
+        # integral float (3.0) cites as "[Page 3]", and a value that is
+        # not a page at all cites as "[Page unknown]" instead of
+        # "[Page 3.0]" or "[Page abc]".
+        page = _source_page(_metadata(doc).get("page", _metadata(doc).get("page_number")))
         blocks.append(
-            f"[Page {_metadata(doc).get('page', _metadata(doc).get('page_number', 'unknown'))}]\n"
+            f"[Page {page if page is not None else 'unknown'}]\n"
             f"{text}"
         )
     return "\n\n".join(blocks)

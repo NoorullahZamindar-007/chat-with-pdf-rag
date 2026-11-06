@@ -53,6 +53,22 @@ def test_build_context_skips_empty_text_chunks():
     assert build_context([doc("", 3)]) == ""
 
 
+def test_build_context_renders_pages_like_source_pages():
+    # The context label and source_pages must agree: a retriever may
+    # hand back 3.0 or "3", both page 3, while 3.5 and "abc" are not
+    # pages at all — the old label rendered them verbatim as
+    # "[Page 3.0]" and "[Page abc]".
+    context = build_context(
+        [doc("A", 3.0), doc("B", "3"), doc("C", 3.5), doc("D", "abc")]
+    )
+
+    assert "[Page 3]" in context
+    assert "[Page 3.0]" not in context
+    assert "[Page 3.5]" not in context
+    assert "[Page abc]" not in context
+    assert context.count("[Page unknown]") == 2
+
+
 def test_build_prompt_keeps_question_and_pdf_context():
     prompt = build_prompt("What is the refund period?", [doc("Refunds take 30 days.", 2)])
 
