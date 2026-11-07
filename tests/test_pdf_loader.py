@@ -123,6 +123,73 @@ def test_extract_pdf_pages_rejects_password_protected_pdf(monkeypatch):
         pdf_loader.extract_pdf_pages("locked.pdf", document_id="doc-123")
 
 
+def test_extract_pdf_pages_skips_unreadable_page(monkeypatch):
+    """One malformed page must not abort extraction of the other pages."""
+    import src.pdf_loader as pdf_loader
+
+    class FakePage:
+        def __init__(self, text=None, broken=False):
+            self._text = text
+            self._broken = broken
+
+        def get_text(self, kind):
+            if self._broken:
+                raise RuntimeError("broken content stream")
+            return self._text
+
+    class FakeDoc:
+        needs_pass = False
+        page_count = 3
+
+        def __iter__(self):
+            return iter(
+                [FakePage("first page"), FakePage(broken=True), FakePage("third page")]
+            )
+
+        def close(self):
+            pass
+
+    class FakeFitz:
+        @staticmethod
+        def open(path):
+            return FakeDoc()
+
+    monkeypatch.setattr(pdf_loader, "fitz", FakeFitz())
+    pages = pdf_loader.extract_pdf_pages("sample.pdf", document_id="doc-123")
+
+    assert [page.page_number for page in pages] == [1, 3]
+    assert "first page" in pages[0].text
+    assert "third page" in pages[1].text
+
+
+def test_extract_pdf_pages_fails_when_every_page_is_unreadable(monkeypatch):
+    """If no page yields text, the existing empty-PDF error still fires."""
+    import src.pdf_loader as pdf_loader
+
+    class FakePage:
+        def get_text(self, kind):
+            raise RuntimeError("broken content stream")
+
+    class FakeDoc:
+        needs_pass = False
+        page_count = 2
+
+        def __iter__(self):
+            return iter([FakePage(), FakePage()])
+
+        def close(self):
+            pass
+
+    class FakeFitz:
+        @staticmethod
+        def open(path):
+            return FakeDoc()
+
+    monkeypatch.setattr(pdf_loader, "fitz", FakeFitz())
+    with pytest.raises(ValueError, match="OCR"):
+        pdf_loader.extract_pdf_pages("sample.pdf", document_id="doc-123")
+
+
 def test_validate_pdf_upload_rejects_non_pdf_magic_bytes():
     """A renamed non-PDF fails validation even with a .pdf extension."""
     import src.pdf_loader as pdf_loader

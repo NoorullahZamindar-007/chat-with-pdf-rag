@@ -8,8 +8,12 @@ try:
 except ImportError:  # Keeps validation helpers importable before dependencies are installed.
     fitz = None
 
+from src.logger import get_logger
 from src.text_cleaner import clean_text
 from src.utils import generate_document_id
+
+
+logger = get_logger(__name__)
 
 
 class PDFValidationError(ValueError):
@@ -145,8 +149,20 @@ def extract_pdf_pages(file_path: str, document_id: str | None = None) -> list[Pa
             raise ValueError("The PDF is empty.")
 
         for page_index, page in enumerate(doc, start=1):
+            # One malformed page (a broken content stream) must not
+            # abort the whole PDF: skip it and keep the other pages.
+            # The existing check below still fails when no page at all
+            # yields text.
+            try:
+                text = clean_text(page.get_text("text"))
+            except Exception:
+                logger.warning(
+                    "Skipping unreadable page %s in %s.",
+                    page_index,
+                    path.name,
+                )
+                continue
             # Empty pages are skipped, but a fully empty PDF fails below.
-            text = clean_text(page.get_text("text"))
             if not text:
                 continue
 
