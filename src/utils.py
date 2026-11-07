@@ -52,7 +52,12 @@ def document_collection_name(document_id: str, settings) -> str:
 def format_source_pages(pages: list[int]) -> str:
     # Retrieval returns pages in relevance order with repeats (one per
     # matching chunk), so sort and dedupe for a readable citation list.
-    unique_pages = sorted(set(pages))
+    # A None or non-int entry (from a JSON retriever, for example) used
+    # to crash sorted() with TypeError; drop it instead of losing the
+    # whole citation list.
+    unique_pages = sorted(
+        page for page in set(pages) if isinstance(page, int) and not isinstance(page, bool)
+    )
     if not unique_pages:
         return "No source pages"
     label = "page" if len(unique_pages) == 1 else "pages"

@@ -42,7 +42,27 @@ def _load_qa_file(qa_file: str) -> list[dict[str, Any]]:
                 raise ValueError(f"Expected a JSON object on line {line_number}.")
             if "question" not in item or "reference_answer" not in item:
                 raise ValueError(f"Missing question/reference_answer on line {line_number}.")
-            item.setdefault("expected_pages", [])
+            # A numeric question/reference_answer passes the presence
+            # check above but crashes later (question.strip() in the
+            # retriever); reject it here with the line number instead
+            # of letting the whole eval run die on a confusing error.
+            for field in ("question", "reference_answer"):
+                if not isinstance(item[field], str):
+                    raise ValueError(
+                        f"Expected {field} to be a string on line {line_number}."
+                    )
+            # A single page number instead of a list is a natural
+            # authoring mistake; treat it as a one-page list rather
+            # than crashing the whole eval run in _unique_ints.
+            expected_pages = item.setdefault("expected_pages", [])
+            if isinstance(expected_pages, (int, float, str)) and not isinstance(
+                expected_pages, bool
+            ):
+                item["expected_pages"] = [expected_pages]
+            elif not isinstance(expected_pages, list):
+                raise ValueError(
+                    f"Expected expected_pages to be a list on line {line_number}."
+                )
             examples.append(item)
     return examples
 

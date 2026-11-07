@@ -19,6 +19,13 @@ def test_format_source_pages_sorts_and_dedupes():
     assert format_source_pages([3, 3]) == "page 3"
 
 
+def test_format_source_pages_drops_non_int_entries():
+    # A None or non-int page (from a JSON retriever) used to crash
+    # sorted() with TypeError; it is dropped instead.
+    assert format_source_pages([3, None, 2, "x", True]) == "pages 2, 3"
+    assert format_source_pages([None]) == "No source pages"
+
+
 def test_ensure_directories_creates_nested_paths(tmp_path):
     target = tmp_path / "a" / "b" / "uploads"
 

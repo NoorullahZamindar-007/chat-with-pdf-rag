@@ -1,6 +1,79 @@
 import csv
 import json
 
+import pytest
+
+
+def _write_qa_file(tmp_path, lines):
+    qa_file = tmp_path / "sample_qa.jsonl"
+    qa_file.write_text("\n".join(json.dumps(line) for line in lines), encoding="utf-8")
+    return qa_file
+
+
+def test_load_qa_file_rejects_non_string_question(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = _write_qa_file(
+        tmp_path,
+        [{"question": 123, "reference_answer": "It is on page two."}],
+    )
+
+    # A numeric question passes the presence check but crashes later
+    # in the retriever on question.strip(); it is rejected here with
+    # the line number instead.
+    with pytest.raises(ValueError, match="question.*line 1"):
+        _load_qa_file(str(qa_file))
+
+
+def test_load_qa_file_rejects_non_string_reference_answer(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = _write_qa_file(
+        tmp_path,
+        [{"question": "Where is it?", "reference_answer": 42}],
+    )
+
+    with pytest.raises(ValueError, match="reference_answer.*line 1"):
+        _load_qa_file(str(qa_file))
+
+
+def test_load_qa_file_coerces_scalar_expected_pages(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = _write_qa_file(
+        tmp_path,
+        [
+            {
+                "question": "Where is it?",
+                "reference_answer": "On page three.",
+                "expected_pages": 3,
+            }
+        ],
+    )
+
+    # A single page number instead of a list is a natural authoring
+    # mistake; it becomes a one-page list instead of crashing the
+    # eval run in _unique_ints.
+    assert _load_qa_file(str(qa_file))[0]["expected_pages"] == [3]
+
+
+def test_load_qa_file_rejects_non_list_expected_pages(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = _write_qa_file(
+        tmp_path,
+        [
+            {
+                "question": "Where is it?",
+                "reference_answer": "On page three.",
+                "expected_pages": {"page": 3},
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="expected_pages.*line 1"):
+        _load_qa_file(str(qa_file))
+
 
 def test_run_basic_evaluation_saves_csv_and_metrics(tmp_path, monkeypatch):
     from src import evaluation
