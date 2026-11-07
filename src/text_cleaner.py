@@ -4,6 +4,12 @@ import unicodedata
 
 def clean_text(text: str) -> str:
     """Clean PDF text without changing the meaning of the sentence."""
+    # A non-string value (an int page number passed as text by a JSON
+    # retriever, for example) used to crash on .replace with a bare
+    # AttributeError; there is no text to clean, so return empty and let
+    # the caller skip the page instead of dropping the whole document.
+    if not isinstance(text, str):
+        return ""
     if not text:
         return ""
 

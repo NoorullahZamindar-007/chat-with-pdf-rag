@@ -23,10 +23,16 @@ def _page_value(page: Any, name: str, default: Any = None) -> Any:
     """Read values from a dataclass/object page or from its metadata dict."""
     if isinstance(page, dict):
         value = page.get(name, default)
-        metadata = page.get("metadata", {}) or {}
+        metadata = page.get("metadata") or {}
     else:
         value = getattr(page, name, default)
-        metadata = getattr(page, "metadata", {}) or {}
+        metadata = getattr(page, "metadata", None) or {}
+    # A metadata value that is not a dict (a stray string from a JSON
+    # retriever, for example) used to crash here on .get with a bare
+    # AttributeError and lose the whole document; treat it as no
+    # metadata instead so the top-level value is used.
+    if not isinstance(metadata, dict):
+        metadata = {}
     return metadata.get(name, value)
 
 

@@ -122,6 +122,52 @@ def test_chunk_pages_tolerates_non_finite_page_numbers(monkeypatch):
     assert [chunk.page_number for chunk in chunks] == [0, 0]
 
 
+def test_chunk_pages_tolerates_non_dict_metadata(monkeypatch):
+    install_fake_splitter(monkeypatch)
+    from src.chunker import chunk_pages
+
+    # A dict page whose metadata is a stray string (not a dict) used to
+    # crash chunking on .get with AttributeError; the top-level values
+    # are used instead and the page still chunks.
+    chunks = chunk_pages(
+        [
+            {
+                "text": "hello world",
+                "document_id": "doc-abc",
+                "file_name": "guide.pdf",
+                "page_number": 2,
+                "metadata": "not-a-dict",
+            }
+        ],
+        chunk_size=50,
+        chunk_overlap=5,
+    )
+
+    assert len(chunks) == 1
+    assert chunks[0].page_number == 2
+    assert chunks[0].text == "hello world"
+
+
+def test_chunk_pages_skips_non_string_text(monkeypatch):
+    install_fake_splitter(monkeypatch)
+    from src.chunker import chunk_pages
+
+    # A page whose text is not a string (an int from a JSON retriever)
+    # used to crash clean_text on .replace; it is skipped instead and
+    # the other pages still chunk.
+    chunks = chunk_pages(
+        [
+            {"text": 123, "document_id": "d", "file_name": "f.pdf", "page_number": 1},
+            page("real text", page_number=3),
+        ],
+        chunk_size=50,
+        chunk_overlap=5,
+    )
+
+    assert len(chunks) == 1
+    assert chunks[0].page_number == 3
+
+
 def test_chunk_pages_adds_required_metadata(monkeypatch):
     install_fake_splitter(monkeypatch)
     from src.chunker import chunk_pages
