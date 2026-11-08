@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.pdf_loader import extract_pdf_pages, validate_pdf
+from src.pdf_loader import extract_pdf_pages, save_uploaded_pdf, validate_pdf
 from src.text_cleaner import clean_text
 from src.utils import generate_document_id
 
@@ -54,6 +54,34 @@ def test_generate_document_id_uses_file_hash(tmp_path):
     file_path.write_bytes(b"same content")
 
     assert generate_document_id(str(file_path)) == generate_document_id(str(file_path))
+
+
+class _FakeUpload:
+    """Minimal stand-in for Streamlit's UploadedFile (getvalue only)."""
+
+    def __init__(self, data: bytes):
+        self._data = data
+
+    def getvalue(self):
+        return self._data
+
+
+def test_save_uploaded_pdf_reports_whether_it_created_the_file(tmp_path):
+    # Content-addressed saves reuse the same path for identical PDFs;
+    # callers need to know if this call created the file, so a failed
+    # re-index does not delete a copy an earlier index still references.
+    first_path, first_hash, first_created = save_uploaded_pdf(
+        _FakeUpload(b"%PDF-1.7 fake"), tmp_path
+    )
+    second_path, second_hash, second_created = save_uploaded_pdf(
+        _FakeUpload(b"%PDF-1.7 fake"), tmp_path
+    )
+
+    assert first_created is True
+    assert second_created is False
+    assert first_path == second_path
+    assert first_hash == second_hash
+    assert first_path.read_bytes() == b"%PDF-1.7 fake"
 
 
 def test_clean_text_normalizes_noise_without_removing_punctuation():

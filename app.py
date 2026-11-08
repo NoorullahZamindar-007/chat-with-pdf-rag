@@ -338,7 +338,7 @@ def save_and_index_pdf(uploaded_file, settings) -> dict:
     validate_pdf_upload(uploaded_file, settings.max_pdf_mb)
 
     # Save first, then validate the actual file path used by the app.
-    pdf_path, _ = save_uploaded_pdf(uploaded_file, settings.upload_dir)
+    pdf_path, _, saved_by_this_upload = save_uploaded_pdf(uploaded_file, settings.upload_dir)
     try:
         validate_pdf(str(pdf_path), settings.max_pdf_mb)
         logger.info("PDF validated: %s", pdf_path)
@@ -367,9 +367,12 @@ def save_and_index_pdf(uploaded_file, settings) -> dict:
             len(added_ids),
         )
     except Exception:
-        # The saved file is content-addressed, so a failed index is only junk
-        # on disk: remove it instead of leaving corrupt uploads behind.
-        discard_saved_pdf(pdf_path)
+        # The saved file is content-addressed, so a failed index is only
+        # junk on disk when this upload created it. If the file already
+        # existed (an identical PDF indexed earlier), deleting it would
+        # remove the shared copy the earlier index still references.
+        if saved_by_this_upload:
+            discard_saved_pdf(pdf_path)
         raise
 
     return {
@@ -482,6 +485,11 @@ def render_chat_history() -> None:
 
 
 def answer_user_question(question: str, settings) -> dict:
+    # A whitespace-only question used to run a (wasted) embedding call
+    # for retrieval first and only fail inside answer_question, surfacing
+    # as a misleading "Unknown error". Fail fast, before any retrieval.
+    if not question or not question.strip():
+        raise ValueError("The question must not be empty.")
     vector_store = st.session_state.vector_store
     if vector_store is None:
         raise RuntimeError("No PDF has been indexed yet. Upload a PDF first.")
@@ -598,6 +606,13 @@ def handle_chat(settings) -> None:
 
     question = st.chat_input("Ask a question from the uploaded PDF")
     if not question:
+        return
+
+    # Do not append a blank question to the chat history or send it to
+    # retrieval: it can only fail, and as a history entry it would sit
+    # there with an error reply attached.
+    if not question.strip():
+        st.warning("Please type a question before asking.")
         return
 
     if st.session_state.vector_store is None:

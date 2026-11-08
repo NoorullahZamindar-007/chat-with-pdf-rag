@@ -104,15 +104,21 @@ def _read_upload_bytes(uploaded_file: BinaryIO) -> bytes:
     return uploaded_file.read()
 
 
-def save_uploaded_pdf(uploaded_file, upload_dir: Path) -> tuple[Path, str]:
-    """Save a PDF using its SHA-256 hash so identical PDFs reuse the same path."""
+def save_uploaded_pdf(uploaded_file, upload_dir: Path) -> tuple[Path, str, bool]:
+    """Save a PDF using its SHA-256 hash so identical PDFs reuse the same path.
+
+    Returns the path, the hash, and whether this call created the file:
+    a failed re-index of an already-saved PDF must not delete the shared
+    on-disk copy that an earlier successful index still references.
+    """
     upload_dir.mkdir(parents=True, exist_ok=True)
     data = _read_upload_bytes(uploaded_file)
     file_hash = hashlib.sha256(data).hexdigest()
     pdf_path = upload_dir / f"{file_hash}.pdf"
-    if not pdf_path.exists():
+    created = not pdf_path.exists()
+    if created:
         pdf_path.write_bytes(data)
-    return pdf_path, file_hash
+    return pdf_path, file_hash, created
 
 
 def discard_saved_pdf(pdf_path: str | Path) -> None:
