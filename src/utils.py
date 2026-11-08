@@ -35,12 +35,21 @@ def embedding_key(settings) -> str:
     the embedding-key test fail in any environment without streamlit
     installed even though the function itself is pure.
     """
+    # Normalise exactly as get_embedding_function does (case-insensitive,
+    # underscores as dashes): "Ollama" and "ollama" must key the same
+    # collection, or switching capitalisation orphans the first one and
+    # the key names a model that is not being used. "huggingface" is the
+    # same Sentence-Transformers model under its other name, so it keys
+    # identically too.
+    provider = settings.embedding_provider.lower().replace("_", "-")
+    if provider == "huggingface":
+        provider = "sentence-transformers"
     model = (
         settings.ollama_embed_model
-        if settings.embedding_provider == "ollama"
+        if provider == "ollama"
         else settings.sentence_transformer_model
     )
-    return f"{settings.embedding_provider}:{model}:chunk-{settings.chunk_size}:overlap-{settings.chunk_overlap}"
+    return f"{provider}:{model}:chunk-{settings.chunk_size}:overlap-{settings.chunk_overlap}"
 
 
 def document_collection_name(document_id: str, settings) -> str:

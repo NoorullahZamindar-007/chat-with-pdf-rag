@@ -42,6 +42,33 @@ def test_embedding_key_includes_chunk_settings():
     assert embedding_key(base) == "sentence-transformers:sentence-model:chunk-900:overlap-180"
     assert embedding_key(base) != embedding_key(changed)
 
+
+def test_embedding_key_normalises_provider_case_and_alias():
+    # get_embedding_function accepts "Ollama" and "huggingface" as the
+    # same providers as "ollama" and "sentence-transformers"; the key
+    # must agree, or the same config keys a different (mislabelled)
+    # collection and switching capitalisation orphans the first one.
+    from src.utils import embedding_key
+
+    base = SimpleNamespace(
+        embedding_provider="sentence-transformers",
+        sentence_transformer_model="sentence-model",
+        ollama_embed_model="nomic-embed-text",
+        chunk_size=900,
+        chunk_overlap=180,
+    )
+    ollama = SimpleNamespace(**{**base.__dict__, "embedding_provider": "Ollama"})
+    ollama_lower = SimpleNamespace(**{**base.__dict__, "embedding_provider": "ollama"})
+    huggingface = SimpleNamespace(**{**base.__dict__, "embedding_provider": "HuggingFace"})
+    sentence_underscore = SimpleNamespace(
+        **{**base.__dict__, "embedding_provider": "sentence_transformers"}
+    )
+
+    assert embedding_key(ollama) == embedding_key(ollama_lower)
+    assert embedding_key(ollama) == "ollama:nomic-embed-text:chunk-900:overlap-180"
+    assert embedding_key(huggingface) == embedding_key(base)
+    assert embedding_key(sentence_underscore) == embedding_key(base)
+
 def test_get_embedding_function_uses_huggingface(monkeypatch):
     created = {}
 
