@@ -98,13 +98,6 @@ def _add_texts_in_batches(vector_store: Any, texts: list[str], metadatas: list[d
         if hasattr(vector_store, "persist"):
             vector_store.persist()
         logger.info("Embedding batch completed: chunks=%s/%s", end, total)
-def vector_store_has_documents(vector_store) -> bool:
-    try:
-        return vector_store._collection.count() > 0
-    except Exception:
-        return False
-
-
 def add_chunks_to_vector_store(chunks, collection_name: str) -> list[str]:
     """Store chunk text, metadata, and IDs in Chroma, skipping existing chunk IDs."""
     if not chunks:

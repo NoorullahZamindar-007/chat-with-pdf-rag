@@ -395,8 +395,9 @@ def reset_current_document() -> None:
         return
 
     try:
-        store = get_vector_store(collection_name)
-        store._collection.delete(where={"document_id": document_id})
+        # Use the public delete: it forwards where= to the collection,
+        # so this does not depend on the wrapper's private _collection.
+        store.delete(where={"document_id": document_id})
     except Exception:
         logger.exception("Vector database reset failed")
         st.error("Vector database reset failed. Check that Chroma is installed and available.")
