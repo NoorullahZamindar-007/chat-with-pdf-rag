@@ -1,3 +1,4 @@
+import http.client
 import json
 import urllib.error
 import urllib.request
@@ -121,6 +122,12 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
         raise RuntimeError(f"API request failed: {message}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"API request failed: {exc.reason}") from exc
+    except (http.client.HTTPException, OSError) as exc:
+        # A truncated or dropped response mid-read (IncompleteRead,
+        # ConnectionResetError) is not a URLError, so without this it
+        # escaped as a bare http.client/OSError traceback and the app
+        # could only report an "Unknown error" instead of the real cause.
+        raise RuntimeError(f"API request failed: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise RuntimeError("API request failed: response was not valid JSON.") from exc
 

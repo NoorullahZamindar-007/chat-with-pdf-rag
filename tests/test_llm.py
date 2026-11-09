@@ -145,6 +145,36 @@ def test_ollama_connection_error_is_helpful(monkeypatch):
         llm.generate_answer("hello", settings=settings)
 
 
+def test_truncated_llm_response_is_an_api_error(monkeypatch):
+    """A response cut off mid-read must not escape as a bare traceback.
+
+    IncompleteRead (and a reset connection) is not a URLError, so it
+    used to leak out of _post_json as a raw http.client/OSError error
+    and surface in the app as an "Unknown error" instead of the real
+    cause.
+    """
+    import http.client
+
+    from src import llm
+
+    def fake_urlopen(request, timeout):
+        raise http.client.IncompleteRead(b"partial", 100)
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="secret-key",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError, match="API request failed"):
+        llm.generate_answer("hello", settings=settings)
+
+
 def test_generate_answer_uses_configured_llm_timeout(monkeypatch):
     from types import SimpleNamespace
 
