@@ -397,6 +397,10 @@ def reset_current_document() -> None:
     try:
         # Use the public delete: it forwards where= to the collection,
         # so this does not depend on the wrapper's private _collection.
+        # The store assignment was dropped in the refactor that made
+        # this switch, so the button below always failed with a
+        # NameError that the generic handler below swallowed.
+        store = get_vector_store(collection_name)
         store.delete(where={"document_id": document_id})
     except Exception:
         logger.exception("Vector database reset failed")
