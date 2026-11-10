@@ -1,4 +1,4 @@
-﻿"""Persistent Chroma vector-store helpers.
+"""Persistent Chroma vector-store helpers.
 
 Manual check after installing requirements:
 
