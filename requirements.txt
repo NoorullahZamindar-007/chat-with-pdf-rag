@@ -6,7 +6,6 @@ langchain-text-splitters
 langchain-chroma
 langchain-huggingface
 langchain-ollama
-langchain-groq
 chromadb
 sentence-transformers
 python-dotenv
