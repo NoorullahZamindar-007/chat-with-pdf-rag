@@ -25,6 +25,23 @@ def test_load_qa_file_rejects_non_string_question(tmp_path):
         _load_qa_file(str(qa_file))
 
 
+def test_load_qa_file_tolerates_utf8_bom(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = tmp_path / "sample_qa.jsonl"
+    qa_file.write_bytes(
+        b"\xef\xbb\xbf"
+        + json.dumps(
+            {"question": "What?", "reference_answer": "This."}
+        ).encode("utf-8")
+    )
+
+    # A QA file saved by Excel/Windows editors often starts with a BOM;
+    # plain utf-8 leaves \ufeff on line 1 and json.loads fails with
+    # "Invalid JSON on line 1".
+    assert _load_qa_file(str(qa_file))[0]["question"] == "What?"
+
+
 def test_load_qa_file_rejects_non_string_reference_answer(tmp_path):
     from src.evaluation import _load_qa_file
 

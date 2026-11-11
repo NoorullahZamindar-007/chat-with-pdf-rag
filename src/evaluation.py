@@ -22,7 +22,10 @@ def _load_qa_file(qa_file: str) -> list[dict[str, Any]]:
         raise FileNotFoundError(f"Evaluation QA file does not exist: {qa_file}")
 
     examples: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as file:
+    # utf-8-sig strips a leading BOM: QA files saved by Excel/Windows
+    # editors often start with one, and plain utf-8 leaves \ufeff on
+    # line 1 so json.loads fails with "Invalid JSON on line 1".
+    with path.open("r", encoding="utf-8-sig") as file:
         for line_number, line in enumerate(file, start=1):
             line = line.strip()
             if not line:
