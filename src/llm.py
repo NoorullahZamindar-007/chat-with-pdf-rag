@@ -119,6 +119,11 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
                 "API request failed: Groq rejected this request with 403/error 1010. "
                 "Check your deployed GROQ_API_KEY secret and retry."
             ) from exc
+        if exc.code == 429:
+            raise RuntimeError(
+                "API request failed: Groq rate limit reached (HTTP 429). "
+                "Wait a moment and retry, or reduce request frequency."
+            ) from exc
         raise RuntimeError(f"API request failed: {message}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"API request failed: {exc.reason}") from exc

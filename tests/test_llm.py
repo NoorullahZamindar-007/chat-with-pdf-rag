@@ -175,6 +175,39 @@ def test_truncated_llm_response_is_an_api_error(monkeypatch):
         llm.generate_answer("hello", settings=settings)
 
 
+def test_groq_rate_limit_is_reported_as_a_clear_error(monkeypatch):
+    """A Groq 429 must tell the user to wait and retry, not dump a raw body.
+
+    Groq's free tier rate-limits frequently; the generic
+    "API request failed: <raw body>" message gave no hint to wait
+    before retrying.
+    """
+    from src import llm
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            429,
+            "Too Many Requests",
+            {},
+            BytesIO(b'{"error": {"message": "Rate limit reached"}}'),
+        )
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="test-key",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError, match="rate limit"):
+        llm.generate_answer("hello", settings=settings)
+
+
 def test_generate_answer_uses_configured_llm_timeout(monkeypatch):
     from types import SimpleNamespace
 
