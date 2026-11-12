@@ -175,6 +175,40 @@ def test_truncated_llm_response_is_an_api_error(monkeypatch):
         llm.generate_answer("hello", settings=settings)
 
 
+def test_non_utf8_llm_response_is_an_api_error(monkeypatch):
+    """A non-UTF-8 response body must not escape as a bare traceback.
+
+    The body is decoded before json.loads is reached, so a
+    UnicodeDecodeError used to leak out of _post_json raw and surface
+    in the app as an "Unknown error" instead of the real cause.
+    """
+    from src import llm
+
+    class NonUtf8Response:
+        def __enter__(self):
+            return BytesIO(b"\xff\xfe not json \x80\x81")
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+    def fake_urlopen(request, timeout):
+        return NonUtf8Response()
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="secret-key",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError, match="not valid UTF-8/JSON"):
+        llm.generate_answer("hello", settings=settings)
+
+
 def test_groq_rate_limit_is_reported_as_a_clear_error(monkeypatch):
     """A Groq 429 must tell the user to wait and retry, not dump a raw body.
 

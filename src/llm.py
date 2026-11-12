@@ -133,8 +133,11 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
         # escaped as a bare http.client/OSError traceback and the app
         # could only report an "Unknown error" instead of the real cause.
         raise RuntimeError(f"API request failed: {exc}") from exc
-    except json.JSONDecodeError as exc:
-        raise RuntimeError("API request failed: response was not valid JSON.") from exc
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        # A non-UTF-8 body raises UnicodeDecodeError inside .decode(),
+        # before json.loads is ever reached — without this it escaped
+        # as a bare traceback and the app could only say "Unknown error".
+        raise RuntimeError("API request failed: response was not valid UTF-8/JSON.") from exc
 
 
 def _extract_error_message(body: str) -> str:

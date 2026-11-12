@@ -501,11 +501,19 @@ def answer_user_question(question: str, settings) -> dict:
 
     logger.info("Retrieval started: document_id=%s", st.session_state.document_id)
     with st.spinner("Searching PDF..."):
-        docs = vector_store.similarity_search(
-            question,
-            k=settings.top_k,
-            filter={"document_id": st.session_state.document_id},
-        )
+        try:
+            docs = vector_store.similarity_search(
+                question,
+                k=settings.top_k,
+                filter={"document_id": st.session_state.document_id},
+            )
+        except Exception as exc:
+            # Chroma errors are generally not RuntimeError, so without
+            # this they fell through to the generic "Unknown error"
+            # branch instead of the clear message below.
+            raise RuntimeError(
+                "Vector database search failed. Check Chroma and the vector_db folder."
+            ) from exc
     logger.info("Retrieval completed: document_id=%s chunks=%s", st.session_state.document_id, len(docs))
 
     for doc in docs:
