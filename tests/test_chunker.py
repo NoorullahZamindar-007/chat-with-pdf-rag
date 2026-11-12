@@ -32,6 +32,34 @@ def page(text, page_number=2):
     )
 
 
+def test_chunk_pdf_pages_defaults_match_chunk_pages(monkeypatch):
+    install_fake_splitter(monkeypatch)
+    # langchain_core is not installed in this env; stub the Document
+    # the compatibility wrapper imports.
+    from dataclasses import dataclass
+
+    @dataclass
+    class FakeDocument:
+        page_content: str
+        metadata: dict
+
+    core = types.ModuleType("langchain_core")
+    documents = types.ModuleType("langchain_core.documents")
+    documents.Document = FakeDocument
+    core.documents = documents
+    monkeypatch.setitem(sys.modules, "langchain_core", core)
+    monkeypatch.setitem(sys.modules, "langchain_core.documents", documents)
+    from src.chunker import chunk_pages, chunk_pdf_pages
+
+    # chunk_pdf_pages used to default to 1000 while chunk_pages and the
+    # config default to 900, so the same PDF chunked differently
+    # depending on which entry point a caller used.
+    pages = [page("x" * 2500)]
+    wrapped = [doc.page_content for doc in chunk_pdf_pages(pages)]
+    direct = [chunk.text for chunk in chunk_pages(pages)]
+    assert wrapped == direct
+
+
 def test_chunk_pages_creates_chunks(monkeypatch):
     install_fake_splitter(monkeypatch)
     from src.chunker import chunk_pages

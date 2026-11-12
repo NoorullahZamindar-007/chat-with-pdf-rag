@@ -35,5 +35,5 @@ def get_embedding_function(settings: Settings | None = None, provider: str | Non
         )
 
     raise ValueError(
-        "Unsupported embedding provider. Use 'sentence-transformers' or 'ollama'."
+        "Unsupported embedding provider. Use 'sentence-transformers', 'huggingface' or 'ollama'."
     )
