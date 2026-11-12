@@ -42,6 +42,19 @@ def test_load_qa_file_tolerates_utf8_bom(tmp_path):
     assert _load_qa_file(str(qa_file))[0]["question"] == "What?"
 
 
+def test_load_qa_file_rejects_empty_file(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = tmp_path / "empty_qa.jsonl"
+    qa_file.write_text("\n\n   \n", encoding="utf-8")
+
+    # A file of only blank lines otherwise "passes" with all-zero
+    # metrics and a header-only CSV — a vacuous eval that looks like
+    # a successful run.
+    with pytest.raises(ValueError, match="contains no examples"):
+        _load_qa_file(str(qa_file))
+
+
 def test_load_qa_file_rejects_non_string_reference_answer(tmp_path):
     from src.evaluation import _load_qa_file
 

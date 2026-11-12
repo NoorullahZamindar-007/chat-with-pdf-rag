@@ -67,6 +67,11 @@ def _load_qa_file(qa_file: str) -> list[dict[str, Any]]:
                     f"Expected expected_pages to be a list on line {line_number}."
                 )
             examples.append(item)
+    if not examples:
+        # A file of only blank lines otherwise "passes" the eval with
+        # all-zero metrics and a header-only CSV — a vacuous run that
+        # looks successful. Fail loudly instead.
+        raise ValueError(f"Evaluation QA file contains no examples: {path}")
     return examples
 
 
