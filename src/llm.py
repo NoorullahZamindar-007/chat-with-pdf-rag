@@ -119,6 +119,14 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
                 "API request failed: Groq rejected this request with 403/error 1010. "
                 "Check your deployed GROQ_API_KEY secret and retry."
             ) from exc
+        if exc.code == 401:
+            # A wrong or revoked key otherwise fell through to the
+            # generic branch, which only repeats Groq's raw body; name
+            # the fix (check the key in .env) like the 403/429 branches do.
+            raise RuntimeError(
+                "API request failed: Groq rejected the API key (HTTP 401). "
+                "Check GROQ_API_KEY in .env and retry."
+            ) from exc
         if exc.code == 429:
             raise RuntimeError(
                 "API request failed: Groq rate limit reached (HTTP 429). "
