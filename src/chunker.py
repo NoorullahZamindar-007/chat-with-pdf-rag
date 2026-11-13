@@ -45,6 +45,12 @@ def _page_number(page: Any) -> int:
     page 0 instead so one odd page number cannot drop the rest.
     """
     raw = _page_value(page, "page_number", 0)
+    if isinstance(raw, bool):
+        # A boolean is not a page: float(True) is 1.0, so without this
+        # a True page number silently became page 1. rag_chain's
+        # _source_page already rejects bools the same way; chunking
+        # should fall back to page 0 like any other unparseable value.
+        return 0
     try:
         return int(float(raw))
     except (TypeError, ValueError, OverflowError):
