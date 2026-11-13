@@ -60,6 +60,24 @@ def test_chunk_pdf_pages_defaults_match_chunk_pages(monkeypatch):
     assert wrapped == direct
 
 
+def test_chunker_defaults_match_app_config(monkeypatch):
+    install_fake_splitter(monkeypatch)
+    from src.chunker import chunk_pages
+    from src.config import get_settings
+
+    # The chunker defaults must stay in step with the configured
+    # defaults: a caller relying on them should get the same chunks as
+    # the app, which passes the config values explicitly.
+    monkeypatch.delenv("CHUNK_SIZE", raising=False)
+    monkeypatch.delenv("CHUNK_OVERLAP", raising=False)
+    settings = get_settings()
+
+    chunk = chunk_pages([page("x" * 2500)])[0]
+
+    assert chunk.metadata["chunk_size"] == settings.chunk_size == 900
+    assert chunk.metadata["chunk_overlap"] == settings.chunk_overlap == 180
+
+
 def test_chunk_pages_creates_chunks(monkeypatch):
     install_fake_splitter(monkeypatch)
     from src.chunker import chunk_pages

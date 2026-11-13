@@ -57,9 +57,16 @@ def _page_number(page: Any) -> int:
 def chunk_pages(
     pages: list,
     chunk_size: int = 900,
-    chunk_overlap: int = 150,
+    chunk_overlap: int = 180,
 ) -> list[TextChunk]:
-    """Split extracted PDF pages into stable, metadata-rich text chunks."""
+    """Split extracted PDF pages into stable, metadata-rich text chunks.
+
+    The defaults match the app's configured defaults (CHUNK_SIZE=900,
+    CHUNK_OVERLAP=180 in config.py/.env.example): the size was aligned
+    earlier but the overlap was left at 150, so the same PDF chunked
+    differently depending on whether the caller passed the config values
+    explicitly or relied on these defaults.
+    """
     if chunk_size <= 0:
         raise ValueError("chunk_size must be greater than 0.")
     if chunk_overlap < 0:
@@ -117,7 +124,7 @@ def chunk_pages(
     return chunks
 
  
-def chunk_pdf_pages(pages: list, chunk_size: int = 900, chunk_overlap: int = 150):
+def chunk_pdf_pages(pages: list, chunk_size: int = 900, chunk_overlap: int = 180):
     """Compatibility wrapper for the existing Streamlit/vector-store code."""
     from langchain_core.documents import Document
  
