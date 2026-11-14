@@ -78,6 +78,18 @@ class _FakeStreamlit(types.ModuleType):
 def _install_stubs():
     if "streamlit" not in sys.modules:
         sys.modules["streamlit"] = _FakeStreamlit()
+    else:
+        # test_app_reset.py installs a smaller fake first when the full
+        # suite runs alphabetically; extend that same object (app is
+        # already bound to it) with the surface this module needs,
+        # instead of replacing it.
+        st = sys.modules["streamlit"]
+        if not hasattr(st, "file_uploader"):
+            st.uploaded_file = None
+            st.markdown = lambda *a, **k: st.calls.append(("markdown", a))
+            st.file_uploader = lambda *a, **k: st.uploaded_file
+            st.info = lambda *a, **k: st.calls.append(("info", a))
+            st.columns = lambda count: tuple(_FakeColumn(st.calls) for _ in range(count))
     if "langchain_text_splitters" not in sys.modules:
         module = types.ModuleType("langchain_text_splitters")
 
