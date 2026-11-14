@@ -242,6 +242,48 @@ def test_groq_rate_limit_is_reported_as_a_clear_error(monkeypatch):
         llm.generate_answer("hello", settings=settings)
 
 
+def test_groq_rate_limit_naming_the_model_is_not_model_not_found(monkeypatch):
+    """A Groq 429 names the model in its body; it must still read as a rate limit.
+
+    Groq's real 429 body is "Rate limit reached for model
+    llama-3.1-8b-instant in organization org_... on tokens per day
+    (TPD): ...". The "model" substring check used to run before the
+    429 branch, so this was reported as "Model not found" and told
+    the user to check the model instead of waiting and retrying. A
+    plain "rate limit" match cannot tell the two apart (the wrong
+    message contains the body too), so assert the negative as well.
+    """
+    from src import llm
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            429,
+            "Too Many Requests",
+            {},
+            BytesIO(
+                b'{"error": {"message": "Rate limit reached for model llama-3.1-8b-instant '
+                b'in organization org_123 on tokens per day (TPD): Limit 100000, Used 100123"}}'
+            ),
+        )
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="test-key",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        llm.generate_answer("hello", settings=settings)
+    assert "rate limit" in str(excinfo.value).lower()
+    assert "Model not found" not in str(excinfo.value)
+
+
 def test_groq_invalid_api_key_is_reported_as_a_clear_error(monkeypatch):
     """A Groq 401 must name the fix (check the key), not dump a raw body.
 

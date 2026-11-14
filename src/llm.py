@@ -112,13 +112,12 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         message = _extract_error_message(body) or exc.reason
-        if exc.code == 404 or "model" in message.lower():
-            raise RuntimeError(f"Model not found or unavailable: {message}") from exc
-        if exc.code == 403 and "1010" in message:
-            raise RuntimeError(
-                "API request failed: Groq rejected this request with 403/error 1010. "
-                "Check your deployed GROQ_API_KEY secret and retry."
-            ) from exc
+        # Check the specific status codes first: Groq's 429 body names
+        # the model ("Rate limit reached for model llama-3.1-8b-instant
+        # ..."), so a "model" substring check before the 429 branch
+        # misreported rate limits as "Model not found" and told the
+        # user to check the model instead of waiting and retrying. The
+        # model check below is therefore 404-only.
         if exc.code == 401:
             # A wrong or revoked key otherwise fell through to the
             # generic branch, which only repeats Groq's raw body; name
@@ -127,11 +126,18 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
                 "API request failed: Groq rejected the API key (HTTP 401). "
                 "Check GROQ_API_KEY in .env and retry."
             ) from exc
+        if exc.code == 403 and "1010" in message:
+            raise RuntimeError(
+                "API request failed: Groq rejected this request with 403/error 1010. "
+                "Check your deployed GROQ_API_KEY secret and retry."
+            ) from exc
         if exc.code == 429:
             raise RuntimeError(
                 "API request failed: Groq rate limit reached (HTTP 429). "
                 "Wait a moment and retry, or reduce request frequency."
             ) from exc
+        if exc.code == 404:
+            raise RuntimeError(f"Model not found or unavailable: {message}") from exc
         raise RuntimeError(f"API request failed: {message}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"API request failed: {exc.reason}") from exc
