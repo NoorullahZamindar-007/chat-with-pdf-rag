@@ -235,3 +235,39 @@ def test_delete_collection_deletes_the_named_collection(monkeypatch):
     vector_store.delete_collection("pdf_abc_12345678")
 
     assert store.deleted_collections == [True]
+
+
+def test_add_chunks_reports_a_failed_existing_id_check(monkeypatch):
+    from src import vector_store
+
+    class FailingStore:
+        def __init__(self):
+            self.added = []
+
+        def get(self, ids):
+            raise RuntimeError("Chroma is down")
+
+        def add_texts(self, texts, metadatas, ids):
+            self.added.append((texts, metadatas, ids))
+
+        def persist(self):
+            pass
+
+    store = FailingStore()
+    monkeypatch.setattr(vector_store, "get_vector_store", lambda collection_name: store)
+
+    chunks = [
+        SimpleNamespace(
+            chunk_id="doc_page_1_chunk_0",
+            text="some text",
+            metadata={"document_id": "doc"},
+        ),
+    ]
+
+    # A failed ID check used to be swallowed (empty set returned), so
+    # every chunk was re-added and the failure surfaced later as a
+    # confusing duplicate-ID error instead of the real Chroma problem.
+    # Nothing may be written when the check itself fails.
+    with pytest.raises(RuntimeError, match="Could not check existing chunk IDs"):
+        vector_store.add_chunks_to_vector_store(chunks, "pdf_docs")
+    assert store.added == []

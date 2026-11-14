@@ -86,16 +86,17 @@ def _chunk_id(chunk: Any, fallback: str) -> str:
 
 
 def _existing_ids(vector_store: Any, ids: list[str]) -> set[str]:
-    """Ask Chroma which IDs already exist; return empty if the backend cannot check."""
+    """Ask Chroma which IDs already exist; fail loudly if the backend cannot check."""
     try:
         existing = vector_store.get(ids=ids)
-    except Exception:
-        # Do not swallow the backend error silently: callers treat an
-        # empty result as "nothing exists yet" and re-add every chunk,
-        # so a lost error here surfaces later as a confusing duplicate
-        # or embedding failure instead of the real Chroma problem.
-        logger.exception("Could not check existing chunk IDs; treating all as new")
-        return set()
+    except Exception as exc:
+        # Returning an empty set here used to make callers treat every
+        # chunk as new and re-add them, so a transient backend/read
+        # failure surfaced later as a confusing duplicate-ID error
+        # instead of the real Chroma problem. A get on a new/empty
+        # collection returns {"ids": []}, not an error, so raising only
+        # fires on a genuine backend failure.
+        raise RuntimeError("Could not check existing chunk IDs in Chroma.") from exc
     return set(existing.get("ids", []) or [])
 
 
