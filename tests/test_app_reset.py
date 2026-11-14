@@ -158,3 +158,36 @@ def test_reset_failure_keeps_document_state(monkeypatch, indexed_state):
     assert indexed_state["document_id"] == "doc-123"
     assert indexed_state["collection_name"] == "pdf_abc"
     assert any(name == "error" for name, _ in app.st.calls)
+
+
+def test_drop_superseded_collection_deletes_the_old_one(monkeypatch):
+    deleted = []
+    monkeypatch.setattr(app, "delete_collection", lambda name: deleted.append(name))
+
+    app._drop_superseded_collection("pdf_aaa", "pdf_bbb")
+
+    assert deleted == ["pdf_aaa"]
+
+
+def test_drop_superseded_collection_skips_same_or_missing_collection(monkeypatch):
+    deleted = []
+    monkeypatch.setattr(app, "delete_collection", lambda name: deleted.append(name))
+
+    # Re-uploading the same PDF yields the same collection name; deleting
+    # it would wipe the index that is still in use.
+    app._drop_superseded_collection("pdf_aaa", "pdf_aaa")
+    app._drop_superseded_collection(None, "pdf_bbb")
+    app._drop_superseded_collection("", "pdf_bbb")
+
+    assert deleted == []
+
+
+def test_drop_superseded_collection_failure_does_not_raise(monkeypatch):
+    # Cleanup must never block the new document: a backend failure here
+    # just leaves the old collection on disk until the next upload.
+    def failing_delete(name):
+        raise RuntimeError("Chroma is down")
+
+    monkeypatch.setattr(app, "delete_collection", failing_delete)
+
+    app._drop_superseded_collection("pdf_aaa", "pdf_bbb")

@@ -217,3 +217,21 @@ def test_add_chunks_to_vector_store_drops_in_batch_duplicate_ids(monkeypatch):
     assert added_ids == ["doc_page_1_chunk_0"]
     assert store.added[0][0] == ["first copy"]
     assert store.added[0][2] == ["doc_page_1_chunk_0"]
+
+
+def test_delete_collection_deletes_the_named_collection(monkeypatch):
+    from src import vector_store
+
+    class FakeStore:
+        def __init__(self):
+            self.deleted_collections = []
+
+        def delete_collection(self):
+            self.deleted_collections.append(True)
+
+    store = FakeStore()
+    monkeypatch.setattr(vector_store, "get_vector_store", lambda name: store)
+
+    vector_store.delete_collection("pdf_abc_12345678")
+
+    assert store.deleted_collections == [True]

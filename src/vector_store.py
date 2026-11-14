@@ -58,6 +58,21 @@ def get_vector_store(
     )
 
 
+def delete_collection(collection_name: str) -> None:
+    """Delete a whole Chroma collection (and its stored chunks) from disk.
+
+    Each uploaded PDF gets its own collection, so when a new PDF
+    replaces the indexed one the old collection must go too — without
+    this, every distinct PDF ever uploaded leaves a collection on disk
+    with no cleanup path. Raises if the backend cannot delete it
+    (including when the collection does not exist); callers that clean
+    up opportunistically should catch that themselves.
+    """
+    store = get_vector_store(collection_name)
+    store.delete_collection()
+    logger.info("Collection deleted: collection=%s", collection_name)
+
+
 def _chunk_text(chunk: Any) -> str:
     return getattr(chunk, "text", getattr(chunk, "page_content", ""))
 

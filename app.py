@@ -20,6 +20,7 @@ from src.rag_chain import answer_question
 from src.utils import document_collection_name, embedding_key, ensure_directories, generate_document_id
 from src.vector_store import (
     add_chunks_to_vector_store,
+    delete_collection,
     get_vector_store,
 )
  
@@ -549,6 +550,24 @@ def _upload_signature(uploaded_file, settings):
     return (hashlib.sha256(data).hexdigest(), embedding_key(settings))
 
 
+def _drop_superseded_collection(old_collection_name, new_collection_name) -> None:
+    """Delete the previous PDF's Chroma collection after a replacement upload.
+
+    Each PDF gets its own collection, so without this every distinct
+    PDF ever uploaded leaves a collection on disk forever. A cleanup
+    failure must never block the new document: the old collection just
+    stays on disk until the next upload tries again. Re-uploading the
+    same PDF yields the same (content-addressed) collection name, so
+    nothing is deleted in that case.
+    """
+    if not old_collection_name or old_collection_name == new_collection_name:
+        return
+    try:
+        delete_collection(old_collection_name)
+    except Exception:
+        logger.exception("Could not delete superseded collection %s", old_collection_name)
+
+
 def render_upload_area(sidebar_file, settings):
     st.markdown('<div class="section-title">Upload and index</div>', unsafe_allow_html=True)
     main_file = st.file_uploader("Upload PDF", type=["pdf"], key="main_pdf")
@@ -598,6 +617,12 @@ def render_upload_area(sidebar_file, settings):
         logger.exception("PDF indexing failed")
         st.error("Unknown error while indexing the PDF. Check the terminal logs.")
     else:
+        # A new PDF replaces the indexed one: drop the old collection
+        # before pointing session state at the new one, or every PDF
+        # ever uploaded leaves a collection on disk forever.
+        _drop_superseded_collection(
+            st.session_state.get("collection_name"), result["collection_name"]
+        )
         st.session_state.document_id = result["document_id"]
         st.session_state.collection_name = result["collection_name"]
         st.session_state.vector_store = result["vector_store"]
