@@ -342,3 +342,39 @@ def test_generate_answer_uses_configured_llm_timeout(monkeypatch):
 
     assert llm.generate_answer("hello", settings=settings) == "answer"
     assert captured["timeout"] == 7
+
+
+def test_groq_error_with_empty_body_names_the_http_status(monkeypatch):
+    """An HTTP error with an empty body and no reason must not report None.
+
+    A bare 500 from Groq (or a proxy) has no body to extract a message
+    from and no reason string, so the generic branch formatted None
+    into "API request failed: None", which says nothing about what
+    happened. The HTTP status is the useful fact in that case.
+    """
+    from src import llm
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            500,
+            None,
+            {},
+            BytesIO(b""),
+        )
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="test-key",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        llm.generate_answer("hello", settings=settings)
+    assert "HTTP 500" in str(excinfo.value)
+    assert "None" not in str(excinfo.value)

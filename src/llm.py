@@ -111,7 +111,10 @@ def _post_json(url: str, payload: dict, headers: dict | None, timeout: int) -> d
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        message = _extract_error_message(body) or exc.reason
+        # An empty error body with no reason used to report
+        # "API request failed: None"; fall back to the HTTP status so
+        # the message always names something about what happened.
+        message = _extract_error_message(body) or exc.reason or f"HTTP {exc.code}"
         # Check the specific status codes first: Groq's 429 body names
         # the model ("Rate limit reached for model llama-3.1-8b-instant
         # ..."), so a "model" substring check before the 429 branch
