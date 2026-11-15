@@ -184,8 +184,13 @@ def index_documents(vector_store, documents: list, collection_name: str) -> None
         if not text:
             continue
         seen.add(doc_id)
+        # The main add_chunks_to_vector_store path stores chunk_id in the
+        # metadata it writes; this compat path did not, so chunks indexed
+        # here came back from retrieval without a chunk_id in metadata.
+        metadata = _chunk_metadata(doc)
+        metadata.setdefault("chunk_id", doc_id)
         texts.append(text)
-        metadatas.append(_chunk_metadata(doc))
+        metadatas.append(metadata)
         new_ids.append(doc_id)
 
     if new_ids:

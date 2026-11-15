@@ -271,3 +271,37 @@ def test_add_chunks_reports_a_failed_existing_id_check(monkeypatch):
     with pytest.raises(RuntimeError, match="Could not check existing chunk IDs"):
         vector_store.add_chunks_to_vector_store(chunks, "pdf_docs")
     assert store.added == []
+
+
+def test_index_documents_stores_chunk_id_in_metadata(monkeypatch):
+    """Chunks indexed through the compat path must carry chunk_id in metadata.
+
+    The main add_chunks_to_vector_store path stores chunk_id in the
+    metadata it writes, but index_documents did not, so chunks indexed
+    here came back from retrieval without a chunk_id in metadata.
+    """
+    from src import vector_store
+
+    class FakeStore:
+        def __init__(self):
+            self.added = []
+
+        def get(self, ids):
+            return {"ids": []}
+
+        def add_texts(self, texts, metadatas, ids):
+            self.added.append((texts, metadatas, ids))
+
+        def persist(self):
+            pass
+
+    store = FakeStore()
+
+    docs = [
+        SimpleNamespace(page_content="hello", metadata={"document_id": "doc"}),
+    ]
+
+    vector_store.index_documents(store, docs, "pdf_docs")
+
+    assert store.added[0][1] == [{"document_id": "doc", "chunk_id": "pdf_docs_0"}]
+    assert store.added[0][2] == ["pdf_docs_0"]
