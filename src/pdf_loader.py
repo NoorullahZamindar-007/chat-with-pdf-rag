@@ -49,6 +49,12 @@ def validate_pdf(file_path: str, max_size_mb: int) -> None:
     if path.suffix.lower() != ".pdf":
         raise ValueError("Only PDF files are supported.")
 
+    # A directory named x.pdf exists and has the right suffix, so without
+    # this it fell through to the magic-byte read and escaped as a raw
+    # IsADirectoryError instead of a clear validation error.
+    if not path.is_file():
+        raise ValueError(f"PDF file is not a readable file: {file_path}")
+
     max_bytes = max_size_mb * 1024 * 1024
     if path.stat().st_size > max_bytes:
         raise ValueError(f"PDF is too large. Max size is {max_size_mb} MB.")
@@ -56,9 +62,14 @@ def validate_pdf(file_path: str, max_size_mb: int) -> None:
     # Re-check magic bytes on the saved file itself. The upload-time peek is
     # skipped for raw streams (peeking would consume bytes the saver needs),
     # so a renamed non-PDF could otherwise reach extraction and fail there
-    # with a misleading "file may be corrupt" message.
-    with path.open("rb") as file:
-        head = file.read(5)
+    # with a misleading "file may be corrupt" message. An unreadable file
+    # (permissions, a file that vanished mid-check) is a validation failure
+    # too, not a raw OSError for the caller to decipher.
+    try:
+        with path.open("rb") as file:
+            head = file.read(5)
+    except OSError as exc:
+        raise ValueError(f"Could not read this PDF file: {file_path}") from exc
     if not head.startswith(b"%PDF"):
         raise ValueError("The file does not look like a PDF.")
 

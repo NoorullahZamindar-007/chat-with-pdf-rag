@@ -41,6 +41,40 @@ def test_validate_pdf_rejects_non_pdf_file(tmp_path):
         validate_pdf(str(file_path), max_size_mb=1)
 
 
+def test_validate_pdf_rejects_a_directory_named_like_a_pdf(tmp_path):
+    """A directory named x.pdf is not a PDF file.
+
+    It exists and has the right suffix, so it used to fall through to
+    the magic-byte read and escape as a raw IsADirectoryError instead
+    of a clear validation error.
+    """
+    dir_path = tmp_path / "folder.pdf"
+    dir_path.mkdir()
+
+    with pytest.raises(ValueError, match="not a readable file"):
+        validate_pdf(str(dir_path), max_size_mb=10)
+
+
+def test_validate_pdf_rejects_an_unreadable_pdf(tmp_path, monkeypatch):
+    """A file that cannot be read must fail validation clearly.
+
+    The magic-byte read used to leak the raw OSError (e.g. a permission
+    error) instead of a ValueError the app can report as a bad upload.
+    """
+    from pathlib import Path
+
+    file_path = tmp_path / "locked.pdf"
+    file_path.write_bytes(b"%PDF-1.7\n%fake content")
+
+    def _blocked_open(self, *args, **kwargs):
+        raise PermissionError("Permission denied")
+
+    monkeypatch.setattr(Path, "open", _blocked_open)
+
+    with pytest.raises(ValueError, match="Could not read this PDF file"):
+        validate_pdf(str(file_path), max_size_mb=10)
+
+
 def test_validate_pdf_rejects_large_file(tmp_path):
     file_path = tmp_path / "large.pdf"
     file_path.write_bytes(b"0" * 2)
