@@ -378,3 +378,59 @@ def test_groq_error_with_empty_body_names_the_http_status(monkeypatch):
         llm.generate_answer("hello", settings=settings)
     assert "HTTP 500" in str(excinfo.value)
     assert "None" not in str(excinfo.value)
+
+
+def _ollama_settings():
+    return SimpleNamespace(
+        llm_provider="ollama",
+        groq_api_key="",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+
+def test_ollama_model_not_found_names_the_pull_command(monkeypatch):
+    """An Ollama 404 must still point at `ollama pull` for the model."""
+    from src import llm
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.HTTPError(
+            "http://localhost:11434/api/chat",
+            404,
+            "Not Found",
+            {},
+            BytesIO(b'{"error": "model \'llama3.1\' not found"}'),
+        )
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(RuntimeError, match="Ollama model not found"):
+        llm.generate_answer("hello", settings=_ollama_settings())
+
+
+def test_ollama_error_mentioning_a_model_is_not_model_not_found(monkeypatch):
+    """An Ollama error that merely mentions a model must not claim it is missing.
+
+    A 400 such as "model requires more system memory" used to match the
+    bare "model" substring check, so the user was told to pull a model
+    that is already installed instead of seeing the real problem.
+    """
+    from src import llm
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.HTTPError(
+            "http://localhost:11434/api/chat",
+            400,
+            "Bad Request",
+            {},
+            BytesIO(b'{"error": "model \'llama3.1\' requires more system memory"}'),
+        )
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        llm.generate_answer("hello", settings=_ollama_settings())
+    assert "Ollama model not found" not in str(excinfo.value)
+    assert "requires more system memory" in str(excinfo.value)

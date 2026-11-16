@@ -219,7 +219,14 @@ def _generate_with_ollama(client: LLMClient, prompt: str) -> str:
             raise RuntimeError(
                 f"Ollama server is not running at {client.base_url}. Start it with: ollama serve"
             ) from exc
-        if "model" in message.lower():
+        if "model not found" in message.lower():
+            # Only the 404 path in _post_json reports "Model not found":
+            # a bare "model" substring matched any error mentioning a
+            # model (e.g. a 400 "model requires more system memory") and
+            # told the user to pull a model that is already installed,
+            # hiding the real problem. Other model-mentioning errors now
+            # fall through to the generic re-raise below with their own
+            # message intact.
             raise RuntimeError(f"Ollama model not found. Pull it with: ollama pull {client.model}") from exc
         raise
 
