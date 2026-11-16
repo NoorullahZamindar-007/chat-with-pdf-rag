@@ -124,9 +124,16 @@ def test_clean_text_normalizes_noise_without_removing_punctuation():
     assert clean_text(messy) == "Hello, world!\n\nThis stays: yes?"
 
 
-@pytest.mark.skipif(importlib.util.find_spec("fitz") is None, reason="PyMuPDF not installed")
+@pytest.mark.skipif(
+    importlib.util.find_spec("pymupdf") is None
+    and importlib.util.find_spec("fitz") is None,
+    reason="PyMuPDF not installed",
+)
 def test_extract_pdf_pages_reads_text_and_metadata(tmp_path):
-    import fitz
+    try:
+        import pymupdf as fitz
+    except ImportError:
+        import fitz
 
     pdf_path = tmp_path / "sample.pdf"
     doc = fitz.open()
@@ -150,9 +157,16 @@ def test_extract_pdf_pages_reads_text_and_metadata(tmp_path):
     }
 
 
-@pytest.mark.skipif(importlib.util.find_spec("fitz") is None, reason="PyMuPDF not installed")
+@pytest.mark.skipif(
+    importlib.util.find_spec("pymupdf") is None
+    and importlib.util.find_spec("fitz") is None,
+    reason="PyMuPDF not installed",
+)
 def test_extract_pdf_pages_rejects_scanned_or_empty_pdf(tmp_path):
-    import fitz
+    try:
+        import pymupdf as fitz
+    except ImportError:
+        import fitz
 
     pdf_path = tmp_path / "blank.pdf"
     doc = fitz.open()

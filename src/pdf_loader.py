@@ -4,9 +4,15 @@ from pathlib import Path
 from typing import Any, BinaryIO
 
 try:
-    import fitz  # PyMuPDF reads PDF pages and extracts selectable text.
-except ImportError:  # Keeps validation helpers importable before dependencies are installed.
-    fitz = None
+    # `import fitz` is deprecated (FutureWarning, removed in a future
+    # PyMuPDF release); `pymupdf` is the supported import name. Fall
+    # back to `fitz` for old PyMuPDF versions that lack the new name.
+    import pymupdf as fitz  # PyMuPDF reads PDF pages and extracts selectable text.
+except ImportError:
+    try:
+        import fitz
+    except ImportError:  # Keeps validation helpers importable before dependencies are installed.
+        fitz = None
 
 from src.logger import get_logger
 from src.text_cleaner import clean_text
