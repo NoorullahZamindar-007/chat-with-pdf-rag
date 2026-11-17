@@ -620,9 +620,15 @@ def render_upload_area(sidebar_file, settings):
         # A new PDF replaces the indexed one: drop the old collection
         # before pointing session state at the new one, or every PDF
         # ever uploaded leaves a collection on disk forever.
-        _drop_superseded_collection(
-            st.session_state.get("collection_name"), result["collection_name"]
-        )
+        old_collection_name = st.session_state.get("collection_name")
+        _drop_superseded_collection(old_collection_name, result["collection_name"])
+        # The old chat history asked about the previous PDF: keep it
+        # only when the document is the same (a re-index after an
+        # embedding-settings change reuses the collection); a different
+        # document's Q&A would sit above answers grounded in the new
+        # PDF, and the "Chat turns" count would count the old turns.
+        if old_collection_name and old_collection_name != result["collection_name"]:
+            st.session_state.messages = []
         st.session_state.document_id = result["document_id"]
         st.session_state.collection_name = result["collection_name"]
         st.session_state.vector_store = result["vector_store"]

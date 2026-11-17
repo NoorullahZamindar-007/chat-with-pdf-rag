@@ -193,6 +193,46 @@ def test_replacing_the_pdf_still_indexes_when_cleanup_fails(monkeypatch, indexed
     assert indexed_state["document_id"] == "doc-bbb"
 
 
+def test_replacing_the_pdf_clears_the_old_chat_history(monkeypatch, indexed_state):
+    # The old Q&A asked about the previous PDF: after a replacement it
+    # would sit above answers grounded in the new PDF, and the "Chat
+    # turns" count would keep counting the old turns.
+    indexed_state["messages"] = [
+        {"role": "user", "content": "What does a.pdf say?"},
+        {"role": "assistant", "content": "a.pdf says ...", "source_pages": [1]},
+    ]
+    monkeypatch.setattr(app, "delete_collection", lambda name: None)
+    monkeypatch.setattr(
+        app, "save_and_index_pdf", lambda f, s: _result_for("pdf_bbb")
+    )
+    monkeypatch.setattr(app, "_upload_signature", lambda f, s: "sig-b")
+    app.st.uploaded_file = _FakeUpload("b.pdf")
+
+    app.render_upload_area(None, SimpleNamespace())
+
+    assert indexed_state["messages"] == []
+    assert indexed_state["collection_name"] == "pdf_bbb"
+
+
+def test_reuploading_the_same_pdf_keeps_the_chat_history(monkeypatch, indexed_state):
+    # A re-index of the same document (e.g. after an embedding-settings
+    # change) reuses the collection, so its Q&A is still about the
+    # indexed PDF and must survive.
+    history = [{"role": "user", "content": "What does a.pdf say?"}]
+    indexed_state["messages"] = history
+    monkeypatch.setattr(app, "delete_collection", lambda name: None)
+    monkeypatch.setattr(
+        app, "save_and_index_pdf", lambda f, s: _result_for("pdf_aaa", "doc-aaa")
+    )
+    monkeypatch.setattr(app, "_upload_signature", lambda f, s: "sig-a2")
+    app.st.uploaded_file = _FakeUpload("a.pdf")
+
+    app.render_upload_area(None, SimpleNamespace())
+
+    assert indexed_state["messages"] == history
+    assert indexed_state["collection_name"] == "pdf_aaa"
+
+
 def test_reuploading_the_same_pdf_deletes_nothing(monkeypatch, indexed_state):
     deleted = []
     monkeypatch.setattr(app, "delete_collection", lambda name: deleted.append(name))
