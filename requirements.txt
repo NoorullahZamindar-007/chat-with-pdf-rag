@@ -1,6 +1,5 @@
 streamlit
 pymupdf
-langchain
 langchain-core
 langchain-text-splitters
 langchain-chroma
