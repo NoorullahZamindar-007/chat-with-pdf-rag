@@ -115,7 +115,7 @@ def test_reset_deletes_only_this_document(monkeypatch, indexed_state):
     store = _FakeStore()
     monkeypatch.setattr(app, "get_vector_store", lambda name: store)
 
-    app.reset_current_document()
+    assert app.reset_current_document() is True
 
     assert store.deleted == [{"document_id": "doc-123"}]
     assert indexed_state["document_id"] is None
@@ -139,7 +139,10 @@ def test_reset_without_document_warns_and_opens_no_store(monkeypatch):
         lambda name: (_ for _ in ()).throw(AssertionError("must not open a store")),
     )
 
-    app.reset_current_document()
+    # A False return is what keeps the sidebar from rerunning: an
+    # unconditional st.rerun() after a failed reset discarded this
+    # run's output, so the warning above never reached the user.
+    assert app.reset_current_document() is False
 
     assert any(name == "warning" for name, _ in app.st.calls)
 
@@ -151,7 +154,7 @@ def test_reset_failure_keeps_document_state(monkeypatch, indexed_state):
 
     monkeypatch.setattr(app, "get_vector_store", lambda name: _FailingStore())
 
-    app.reset_current_document()
+    assert app.reset_current_document() is False
 
     # The document must stay indexed when the delete itself fails;
     # silently clearing the session state would orphan the chunks.

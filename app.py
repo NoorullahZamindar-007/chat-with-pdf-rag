@@ -387,13 +387,20 @@ def save_and_index_pdf(uploaded_file, settings) -> dict:
     }
 
 
-def reset_current_document() -> None:
-    """Delete only the current document chunks from the current Chroma collection."""
+def reset_current_document() -> bool:
+    """Delete only the current document chunks from the current Chroma collection.
+
+    Returns True when the document was reset, False when nothing was
+    reset (no document indexed, or the delete failed) — the caller only
+    reruns the app on success, because st.rerun() discards the current
+    run's output: rerunning after a failure wiped the warning/error
+    above before the user could ever read it.
+    """
     document_id = st.session_state.get("document_id")
     collection_name = st.session_state.get("collection_name")
     if not document_id or not collection_name:
         st.warning("Upload and index a PDF before resetting its vector data.")
-        return
+        return False
 
     try:
         # Use the public delete: it forwards where= to the collection,
@@ -406,7 +413,7 @@ def reset_current_document() -> None:
     except Exception:
         logger.exception("Vector database reset failed")
         st.error("Vector database reset failed. Check that Chroma is installed and available.")
-        return
+        return False
 
     st.session_state.vector_store = None
     st.session_state.collection_name = None
@@ -417,6 +424,7 @@ def reset_current_document() -> None:
     st.session_state.indexed_upload = None
     st.session_state.messages = []
     st.success("Vector database entries for this document were reset.")
+    return True
 
 
 def render_sidebar(settings):
@@ -449,8 +457,11 @@ def render_sidebar(settings):
             st.rerun()
 
         if st.button("Reset vector database for this document", use_container_width=True):
-            reset_current_document()
-            st.rerun()
+            # Only rerun on success: st.rerun() discards this run's
+            # output, so rerunning after a failed reset wiped the
+            # warning/error above before the user could read it.
+            if reset_current_document():
+                st.rerun()
 
     return uploaded_file
 
