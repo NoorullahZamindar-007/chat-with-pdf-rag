@@ -8,22 +8,26 @@ from src.chunker import chunk_pages
 from src.config import get_settings
 from src.llm import MissingApiKeyError, get_llm
 from src.logger import get_logger
-from src.pdf_loader import ( 
+from src.pdf_loader import (
     PDFValidationError,
     discard_saved_pdf,
-    extract_pdf_pages, 
-    save_uploaded_pdf, 
-    validate_pdf, 
+    extract_pdf_pages,
+    save_uploaded_pdf,
+    validate_pdf,
     validate_pdf_upload,
 )
-from src.rag_chain import answer_question   
-from src.utils import document_collection_name, embedding_key, ensure_directories, generate_document_id
+from src.rag_chain import answer_question
+from src.utils import (
+    document_collection_name,
+    embedding_key,
+    ensure_directories,
+    generate_document_id,
+)
 from src.vector_store import (
     add_chunks_to_vector_store,
     delete_collection,
     get_vector_store,
 )
- 
 
 logger = get_logger(__name__)
 

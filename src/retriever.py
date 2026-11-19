@@ -4,7 +4,6 @@ from src.config import get_settings
 from src.logger import get_logger
 from src.vector_store import get_vector_store
 
-
 logger = get_logger(__name__)
 
 # Metadata filtering matters because one Chroma collection may contain many PDFs.

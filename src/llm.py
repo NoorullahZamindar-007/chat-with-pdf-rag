@@ -8,7 +8,6 @@ from typing import Any
 from src.config import Settings, get_settings
 from src.logger import get_logger
 
-
 logger = get_logger(__name__)
 
 

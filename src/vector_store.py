@@ -23,7 +23,6 @@ from src.config import get_settings
 from src.embeddings import get_embedding_function
 from src.logger import get_logger
 
-
 logger = get_logger(__name__)
 
 # A vector database stores embedding vectors plus the original chunk metadata so
@@ -133,7 +132,7 @@ def add_chunks_to_vector_store(chunks, collection_name: str) -> list[str]:
     # in-batch repeats; the existing-IDs check above only covers what
     # is already stored, not repeats inside this batch.
     seen: set[str] = set()
-    for chunk, chunk_id in zip(chunks, ids):
+    for chunk, chunk_id in zip(chunks, ids, strict=True):
         if chunk_id in existing or chunk_id in seen:
             continue
         text = _chunk_text(chunk)
@@ -177,7 +176,7 @@ def index_documents(vector_store, documents: list, collection_name: str) -> None
     # without it, two documents sharing a chunk ID fail or overwrite
     # each other inside a single add_texts call.
     seen: set[str] = set()
-    for doc, doc_id in zip(documents, ids):
+    for doc, doc_id in zip(documents, ids, strict=True):
         if doc_id in existing or doc_id in seen:
             continue
         text = _chunk_text(doc)

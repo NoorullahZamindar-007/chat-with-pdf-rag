@@ -18,7 +18,6 @@ from src.logger import get_logger
 from src.text_cleaner import clean_text
 from src.utils import generate_document_id
 
-
 logger = get_logger(__name__)
 
 

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 
-
 FALLBACK_ANSWER = "I could not find this information in the uploaded PDF."
 
 SYSTEM_PROMPT = f"""

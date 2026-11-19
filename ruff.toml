@@ -1,0 +1,13 @@
+# Lint standard for `make lint` (`ruff check .`): the same rule set as
+# vision-hands — errors, pyflakes, import sorting and bugbear, with
+# E501 off (long lines are common in the Streamlit CSS strings and the
+# tests). Notebooks are interactive examples, not linted code: the
+# evaluation cell intentionally imports run_basic_evaluation for the
+# user to uncomment and run.
+target-version = "py310"
+line-length = 88
+extend-exclude = ["notebooks"]
+
+[lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
