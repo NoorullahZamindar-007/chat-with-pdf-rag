@@ -483,7 +483,10 @@ def render_retrieved_chunks(chunks) -> None:
         return
     with st.expander("Retrieved chunks"):
         for index, chunk in enumerate(chunks, start=1):
-            page = chunk.metadata.get("page_number", chunk.metadata.get("page", "unknown"))
+            # Some vector stores return chunks with no metadata at all;
+            # reading .get() off None crashed the whole chat render.
+            metadata = chunk.metadata or {}
+            page = metadata.get("page_number", metadata.get("page", "unknown"))
             st.markdown(f"**Chunk {index} | Page {page}**")
             st.write(chunk.page_content)
 
@@ -533,8 +536,12 @@ def answer_user_question(question: str, settings) -> dict:
     logger.info("Retrieval completed: document_id=%s chunks=%s", st.session_state.document_id, len(docs))
 
     for doc in docs:
-        if "page" not in doc.metadata and "page_number" in doc.metadata:
-            doc.metadata["page"] = doc.metadata["page_number"]
+        # A retrieved doc can carry metadata=None; normalise it before
+        # the page-aliasing below and before the docs reach the renderer.
+        metadata = doc.metadata or {}
+        if "page" not in metadata and "page_number" in metadata:
+            metadata["page"] = metadata["page_number"]
+        doc.metadata = metadata
 
     logger.info("LLM answer started: document_id=%s", st.session_state.document_id)
     with st.spinner("Generating answer..."):

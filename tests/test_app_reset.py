@@ -47,6 +47,16 @@ class _FakeStreamlit(types.ModuleType):
     def spinner(self, *args, **kwargs):
         yield
 
+    @contextmanager
+    def expander(self, *args, **kwargs):
+        yield
+
+    def markdown(self, *args, **kwargs):
+        self.calls.append(("markdown", args))
+
+    def write(self, *args, **kwargs):
+        self.calls.append(("write", args))
+
 
 def _install_stubs():
     if "streamlit" not in sys.modules:
@@ -194,3 +204,54 @@ def test_drop_superseded_collection_failure_does_not_raise(monkeypatch):
     monkeypatch.setattr(app, "delete_collection", failing_delete)
 
     app._drop_superseded_collection("pdf_aaa", "pdf_bbb")
+
+
+class _Doc:
+    """Minimal stand-in for a retrieved LangChain document."""
+
+    def __init__(self, text, metadata):
+        self.page_content = text
+        self.metadata = metadata
+
+
+def test_render_retrieved_chunks_tolerates_none_metadata():
+    # A chunk with metadata=None used to crash the chat render with
+    # AttributeError on chunk.metadata.get(...).
+    app.st.calls.clear()
+
+    app.render_retrieved_chunks([_Doc("hello", None)])
+
+    assert any(
+        name == "markdown" and "unknown" in args[0].lower()
+        for name, args in app.st.calls
+    )
+
+
+def test_answer_user_question_tolerates_none_metadata(monkeypatch):
+    # A retrieved doc with metadata=None used to crash the page-alias
+    # loop with TypeError ("page" not in None) before the LLM ran.
+    from types import SimpleNamespace
+
+    class _Store:
+        def similarity_search(self, question, k, filter):
+            assert filter == {"document_id": "doc-123"}
+            return [_Doc("chunk one", None), _Doc("chunk two", {"page_number": 3})]
+
+    app.st.session_state.clear()
+    app.st.session_state.update(
+        {"document_id": "doc-123", "vector_store": _Store()}
+    )
+    monkeypatch.setattr(app, "get_llm", lambda settings: object())
+    monkeypatch.setattr(
+        app,
+        "answer_question",
+        lambda question, docs, llm: {"answer": "done", "source_pages": [3]},
+    )
+
+    result = app.answer_user_question("What is this?", SimpleNamespace(top_k=2))
+
+    assert result["answer"] == "done"
+    assert result["source_pages"] == [3]
+    # The None metadata was normalised, and the page_number alias applied.
+    assert result["chunks"][0].metadata == {}
+    assert result["chunks"][1].metadata == {"page_number": 3, "page": 3}
