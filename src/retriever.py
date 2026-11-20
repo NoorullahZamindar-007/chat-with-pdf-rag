@@ -61,8 +61,18 @@ def retrieve_relevant_chunks(
     return results
 
 
-def retrieve_documents(vector_store: Any, question: str, k: int | None = None) -> list[Any]:
-    """Compatibility helper for the Streamlit RAG chain."""
+def retrieve_documents(
+    vector_store: Any,
+    question: str,
+    k: int | None = None,
+    document_id: str | None = None,
+) -> list[Any]:
+    """Compatibility helper for the Streamlit RAG chain.
+
+    Pass document_id to scope the search to one PDF: without it the
+    helper searched the whole collection, so chunks from another
+    uploaded PDF could leak into the answer context.
+    """
     # The main retrieval path rejects blank questions and non-positive k,
     # but this helper passed them straight through: a blank question
     # wasted an embedding call and failed deep in the vector store, and
@@ -75,7 +85,11 @@ def retrieve_documents(vector_store: Any, question: str, k: int | None = None) -
     settings = get_settings()
     logger.info("Retrieval started")
     try:
-        docs = vector_store.similarity_search(question, k=k or settings.top_k)
+        docs = vector_store.similarity_search(
+            question,
+            k=k or settings.top_k,
+            filter={"document_id": document_id} if document_id else None,
+        )
     except Exception:
         logger.exception("Retrieval failed")
         raise

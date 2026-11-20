@@ -50,3 +50,31 @@ def test_retrieve_relevant_chunks_rejects_non_positive_top_k(monkeypatch):
         retriever.retrieve_relevant_chunks("What is this?", "pdf_docs", "doc-abc", top_k=0)
 
     assert store.calls == []
+
+
+class _SearchStore:
+    """Fake store recording the filter passed to similarity_search."""
+
+    def __init__(self):
+        self.calls = []
+
+    def similarity_search(self, question, k, filter=None):
+        self.calls.append((question, k, filter))
+        return [FakeDoc("chunk text", {"page_number": 2})]
+
+
+def test_retrieve_documents_passes_document_filter(monkeypatch):
+    store = _SearchStore()
+
+    docs = retriever.retrieve_documents(store, "What is this?", document_id="doc-abc")
+
+    assert docs[0].page_content == "chunk text"
+    assert store.calls[0][2] == {"document_id": "doc-abc"}
+
+
+def test_retrieve_documents_without_document_id_searches_whole_store(monkeypatch):
+    store = _SearchStore()
+
+    retriever.retrieve_documents(store, "What is this?")
+
+    assert store.calls[0][2] is None
