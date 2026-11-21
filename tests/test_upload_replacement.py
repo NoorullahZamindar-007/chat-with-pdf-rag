@@ -157,6 +157,30 @@ def _result_for(collection_name, document_id="doc-bbb"):
     }
 
 
+def test_uploader_key_changes_with_the_reset_nonce(monkeypatch, indexed_state):
+    # The nonce bump in reset_current_document only clears the widgets
+    # if the uploaders are actually keyed with it: the key must change
+    # when the nonce does, or the old file survives the reset and is
+    # re-indexed on the rerun.
+    seen_keys = []
+
+    def _capture(*args, **kwargs):
+        seen_keys.append(kwargs.get("key"))
+        return None
+
+    monkeypatch.setattr(app.st, "file_uploader", _capture)
+
+    indexed_state["upload_nonce"] = 2
+    app.render_upload_area(None, SimpleNamespace())
+    indexed_state["upload_nonce"] = 3
+    app.render_upload_area(None, SimpleNamespace())
+
+    assert len(seen_keys) == 2
+    assert seen_keys[0] != seen_keys[1]
+    assert seen_keys[0] is not None and "2" in seen_keys[0]
+    assert "3" in seen_keys[1]
+
+
 def test_replacing_the_pdf_deletes_the_old_collection(monkeypatch, indexed_state):
     deleted = []
     monkeypatch.setattr(app, "delete_collection", lambda name: deleted.append(name))

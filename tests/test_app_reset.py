@@ -173,6 +173,33 @@ def test_reset_failure_keeps_document_state(monkeypatch, indexed_state):
     assert any(name == "error" for name, _ in app.st.calls)
 
 
+def test_reset_rotates_the_uploader_key(monkeypatch, indexed_state):
+    # Clearing indexed_upload alone does not stop a re-index: the file
+    # uploaders keep their values across the rerun (same widget keys),
+    # so render_upload_area sees the same file and runs the whole
+    # pipeline again, silently undoing the reset. The reset must rotate
+    # the uploader keys so both widgets come back empty.
+    store = _FakeStore()
+    monkeypatch.setattr(app, "get_vector_store", lambda name: store)
+    indexed_state["upload_nonce"] = 2
+
+    assert app.reset_current_document() is True
+
+    assert indexed_state["upload_nonce"] == 3
+
+
+def test_reset_without_nonce_key_still_rotates(monkeypatch, indexed_state):
+    # Tests build session state by hand, and older state has no nonce:
+    # the reset must not KeyError, it starts from 0.
+    store = _FakeStore()
+    monkeypatch.setattr(app, "get_vector_store", lambda name: store)
+    assert "upload_nonce" not in indexed_state
+
+    assert app.reset_current_document() is True
+
+    assert indexed_state["upload_nonce"] == 1
+
+
 def test_drop_superseded_collection_deletes_the_old_one(monkeypatch):
     deleted = []
     monkeypatch.setattr(app, "delete_collection", lambda name: deleted.append(name))

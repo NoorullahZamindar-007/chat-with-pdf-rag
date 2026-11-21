@@ -331,6 +331,10 @@ def init_session_state() -> None:
         "file_name": None,
         "indexed_upload": None,
         "failed_upload": None,
+        # Rotated on every successful reset: the file uploaders below
+        # are keyed with this value, so bumping it clears the widget
+        # and the reset PDF is not silently re-indexed on the rerun.
+        "upload_nonce": 0,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -427,6 +431,15 @@ def reset_current_document() -> bool:
     st.session_state.file_name = None
     st.session_state.indexed_upload = None
     st.session_state.messages = []
+    # Clearing indexed_upload alone does not stop the re-index: both
+    # file uploaders keep their values across the rerun (same widget
+    # keys), so render_upload_area sees the same file with no indexed
+    # signature and runs the whole pipeline again — the reset is undone
+    # before the user ever sees the success message below. Rotating the
+    # uploader keys clears both widgets, so the reset actually sticks
+    # and the user re-uploads to index again. .get() because tests build
+    # session state by hand without this key.
+    st.session_state["upload_nonce"] = st.session_state.get("upload_nonce", 0) + 1
     st.success("Vector database entries for this document were reset.")
     return True
 
@@ -435,7 +448,13 @@ def render_sidebar(settings):
     with st.sidebar:
         st.markdown("## Control Panel")
         st.caption("Upload, index, and manage the current PDF.")
-        uploaded_file = st.file_uploader("Upload PDF", type=["pdf"], key="sidebar_pdf")
+        uploaded_file = st.file_uploader(
+            "Upload PDF",
+            type=["pdf"],
+            # Keyed with the reset nonce (see reset_current_document):
+            # a fixed key would keep the old file after a reset.
+            key=f"sidebar_pdf_{st.session_state.get('upload_nonce', 0)}",
+        )
 
         st.markdown("## Runtime")
         st.markdown(
@@ -592,7 +611,13 @@ def _drop_superseded_collection(old_collection_name, new_collection_name) -> Non
 
 def render_upload_area(sidebar_file, settings):
     st.markdown('<div class="section-title">Upload and index</div>', unsafe_allow_html=True)
-    main_file = st.file_uploader("Upload PDF", type=["pdf"], key="main_pdf")
+    main_file = st.file_uploader(
+        "Upload PDF",
+        type=["pdf"],
+        # Keyed with the reset nonce (see reset_current_document):
+        # a fixed key would keep the old file after a reset.
+        key=f"main_pdf_{st.session_state.get('upload_nonce', 0)}",
+    )
     uploaded_file = main_file or sidebar_file
 
     if uploaded_file is None:
