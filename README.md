@@ -65,7 +65,7 @@ Main modules:
 Use 64-bit Python 3.10 or newer. Python 3.11 is recommended.
 
 ```powershell
-cd D:\Projcets\chat-with-pdf-rag
+cd D:\Projects\chat-with-pdf-rag
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
