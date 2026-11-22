@@ -123,6 +123,8 @@ Important variables:
 - `CHUNK_SIZE`: text chunk size
 - `CHUNK_OVERLAP`: overlap between chunks
 
+Legacy aliases still honoured when the primary name is unset: `RETRIEVAL_K` for `TOP_K`, `EMBEDDING_MODEL` for `SENTENCE_TRANSFORMER_MODEL`, `OLLAMA_MODEL` for `OLLAMA_LLM_MODEL`, `OLLAMA_EMBEDDING_MODEL` for `OLLAMA_EMBED_MODEL`.
+
 Never commit `.env`. This repo includes `.gitignore` and `.dockerignore` entries for it.
 
 ## How to Run

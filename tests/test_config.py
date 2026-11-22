@@ -91,3 +91,36 @@ def test_embedding_provider_rejects_unknown(monkeypatch):
 def test_embedding_provider_accepts_underscore_alias(monkeypatch):
     monkeypatch.setenv("EMBEDDING_PROVIDER", "sentence_transformers")
     assert get_settings().embedding_provider == "sentence_transformers"
+
+
+def test_retrieval_k_is_used_when_top_k_is_unset(monkeypatch):
+    # RETRIEVAL_K is the legacy name for TOP_K: it still sets the
+    # retrieval count, but it is undocumented, so a user following an
+    # older guide had no way to know it works.
+    monkeypatch.delenv("TOP_K", raising=False)
+    monkeypatch.setenv("RETRIEVAL_K", "5")
+    assert get_settings().top_k == 5
+
+
+def test_top_k_wins_over_retrieval_k(monkeypatch):
+    monkeypatch.setenv("TOP_K", "10")
+    monkeypatch.setenv("RETRIEVAL_K", "5")
+    assert get_settings().top_k == 10
+
+
+def test_ollama_model_alias_is_used_when_ollama_llm_model_is_unset(monkeypatch):
+    monkeypatch.delenv("OLLAMA_LLM_MODEL", raising=False)
+    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
+    assert get_settings().ollama_llm_model == "llama3.2"
+
+
+def test_embedding_model_alias_is_used_when_sentence_transformer_model_is_unset(monkeypatch):
+    monkeypatch.delenv("SENTENCE_TRANSFORMER_MODEL", raising=False)
+    monkeypatch.setenv("EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2")
+    assert get_settings().sentence_transformer_model == "sentence-transformers/all-mpnet-base-v2"
+
+
+def test_ollama_embedding_model_alias_is_used_when_ollama_embed_model_is_unset(monkeypatch):
+    monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
+    monkeypatch.setenv("OLLAMA_EMBEDDING_MODEL", "mxbai-embed-large")
+    assert get_settings().ollama_embed_model == "mxbai-embed-large"
