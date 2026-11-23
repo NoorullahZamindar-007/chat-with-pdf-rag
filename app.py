@@ -502,12 +502,23 @@ def render_retrieved_chunks(chunks) -> None:
         return
     with st.expander("Retrieved chunks"):
         for index, chunk in enumerate(chunks, start=1):
-            # Some vector stores return chunks with no metadata at all;
-            # reading .get() off None crashed the whole chat render.
-            metadata = chunk.metadata or {}
+            # Chunks can arrive as plain dicts from a JSON retriever
+            # (build_context already tolerates those), but attribute
+            # access on a dict crashed the whole chat render here.
+            if isinstance(chunk, dict):
+                metadata = chunk.get("metadata") or {}
+                text = chunk.get("page_content", chunk.get("text", ""))
+            else:
+                metadata = getattr(chunk, "metadata", None) or {}
+                text = getattr(chunk, "page_content", getattr(chunk, "text", ""))
+            # A non-dict metadata value (a stray string from a JSON
+            # retriever) has no .get; treat it as no metadata instead
+            # of losing the whole render.
+            if not isinstance(metadata, dict):
+                metadata = {}
             page = metadata.get("page_number", metadata.get("page", "unknown"))
             st.markdown(f"**Chunk {index} | Page {page}**")
-            st.write(chunk.page_content)
+            st.write(text)
 
 
 def render_assistant_message(message: dict) -> None:

@@ -254,6 +254,32 @@ def test_render_retrieved_chunks_tolerates_none_metadata():
     )
 
 
+def test_render_retrieved_chunks_tolerates_dict_chunks():
+    # A JSON retriever hands back plain dicts instead of LangChain
+    # Documents; attribute access on one crashed the chat render with
+    # AttributeError on chunk.metadata. A non-dict metadata value
+    # crashed the same way on .get().
+    app.st.calls.clear()
+
+    app.render_retrieved_chunks(
+        [
+            {"page_content": "hello", "metadata": {"page_number": 2}},
+            _Doc("world", "stray-string"),
+        ]
+    )
+
+    assert any(
+        name == "markdown" and "Page 2" in args[0]
+        for name, args in app.st.calls
+    )
+    assert any(
+        name == "markdown" and "unknown" in args[0].lower()
+        for name, args in app.st.calls
+    )
+    assert ("write", ("hello",)) in app.st.calls
+    assert ("write", ("world",)) in app.st.calls
+
+
 def test_answer_user_question_tolerates_none_metadata(monkeypatch):
     # A retrieved doc with metadata=None used to crash the page-alias
     # loop with TypeError ("page" not in None) before the LLM ran.
