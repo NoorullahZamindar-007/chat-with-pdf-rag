@@ -82,6 +82,35 @@ def test_llm_provider_accepts_case_variant(monkeypatch):
     assert get_settings().llm_provider == "Ollama"
 
 
+def test_string_env_values_are_stripped(monkeypatch):
+    # .env values pasted with surrounding spaces (" groq ") used to
+    # fail startup validation even though the intent is obvious.
+    monkeypatch.setenv("LLM_PROVIDER", " groq ")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", " ollama ")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434 ")
+    monkeypatch.setenv("GROQ_MODEL", " llama-3.1-8b-instant ")
+    settings = get_settings()
+    assert settings.llm_provider == "groq"
+    assert settings.embedding_provider == "ollama"
+    assert settings.ollama_base_url == "http://localhost:11434"
+    assert settings.groq_model == "llama-3.1-8b-instant"
+
+
+def test_empty_string_env_value_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "   ")
+    settings = get_settings()
+    assert settings.llm_provider == "groq"
+    assert settings.ollama_base_url == "http://localhost:11434"
+
+
+def test_chroma_persist_dir_whitespace_is_stripped(monkeypatch):
+    from src.config import BASE_DIR
+
+    monkeypatch.setenv("CHROMA_PERSIST_DIR", " vector_db ")
+    assert get_settings().chroma_persist_dir == BASE_DIR / "vector_db"
+
+
 def test_embedding_provider_rejects_unknown(monkeypatch):
     monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
     with pytest.raises(ValueError, match="EMBEDDING_PROVIDER"):

@@ -30,8 +30,26 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _str_env(name: str, default: str) -> str:
+    # .env values are often pasted with surrounding spaces (" groq "),
+    # and a provider/model/URL with a stray space fails later with a
+    # confusing error (or a silently wrong URL) instead of at startup.
+    # An empty or whitespace-only value means "unset", so it falls
+    # through to the default (or the legacy alias below).
+    value = os.getenv(name)
+    if value is None:
+        return default
+    stripped = value.strip()
+    return stripped or default
+
+
 def _path_env(name: str, default: Path) -> Path:
     value = os.getenv(name)
+    if not value:
+        return default
+    # Same stray-space problem as _str_env: " vector_db " would
+    # otherwise become a directory literally named " vector_db ".
+    value = value.strip()
     if not value:
         return default
     path = Path(value)
@@ -144,8 +162,8 @@ def get_settings() -> Settings:
     llm_timeout = _int_env("LLM_TIMEOUT", 60)
     llm_max_tokens = _int_env("LLM_MAX_TOKENS", 1000)
     embedding_batch_size = _int_env("EMBEDDING_BATCH_SIZE", 8)
-    llm_provider = os.getenv("LLM_PROVIDER", "groq")
-    embedding_provider = os.getenv("EMBEDDING_PROVIDER", "sentence-transformers")
+    llm_provider = _str_env("LLM_PROVIDER", "groq")
+    embedding_provider = _str_env("EMBEDDING_PROVIDER", "sentence-transformers")
     _validate_settings(
         chunk_size,
         chunk_overlap,
@@ -173,20 +191,20 @@ def get_settings() -> Settings:
         llm_max_tokens=llm_max_tokens,
         llm_timeout=llm_timeout,
         groq_api_key=os.getenv("GROQ_API_KEY", ""),
-        groq_model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
-        ollama_llm_model=os.getenv(
+        groq_model=_str_env("GROQ_MODEL", "llama-3.1-8b-instant"),
+        ollama_llm_model=_str_env(
             "OLLAMA_LLM_MODEL",
-            os.getenv("OLLAMA_MODEL", "llama3.1"),
+            _str_env("OLLAMA_MODEL", "llama3.1"),
         ),
-        ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        ollama_base_url=_str_env("OLLAMA_BASE_URL", "http://localhost:11434"),
         embedding_provider=embedding_provider,
-        sentence_transformer_model=os.getenv(
+        sentence_transformer_model=_str_env(
             "SENTENCE_TRANSFORMER_MODEL",
-            os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
+            _str_env("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
         ),
-        ollama_embed_model=os.getenv(
+        ollama_embed_model=_str_env(
             "OLLAMA_EMBED_MODEL",
-            os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
+            _str_env("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
         ),
         embedding_batch_size=embedding_batch_size,
     )
