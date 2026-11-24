@@ -568,7 +568,11 @@ def answer_user_question(question: str, settings) -> dict:
     for doc in docs:
         # A retrieved doc can carry metadata=None; normalise it before
         # the page-aliasing below and before the docs reach the renderer.
-        metadata = doc.metadata or {}
+        # A non-dict metadata value (a stray string from a JSON
+        # retriever) has no item assignment, so without this guard it
+        # crashed the whole chat turn here instead of rendering like
+        # the chunker and the retrieved-chunks renderer already handle.
+        metadata = doc.metadata if isinstance(doc.metadata, dict) else {}
         if "page" not in metadata and "page_number" in metadata:
             metadata["page"] = metadata["page_number"]
         doc.metadata = metadata
