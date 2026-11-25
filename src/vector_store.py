@@ -77,7 +77,13 @@ def _chunk_text(chunk: Any) -> str:
 
 
 def _chunk_metadata(chunk: Any) -> dict:
-    return dict(getattr(chunk, "metadata", {}) or {})
+    # A chunk can carry a non-dict metadata value (a stray string from
+    # a JSON retriever, for example); dict() on it raises
+    # ValueError/TypeError and loses the whole index batch, so treat
+    # it as no metadata instead — the same tolerance the retriever
+    # and the chat renderer already apply to non-dict metadata.
+    raw = getattr(chunk, "metadata", None) or {}
+    return dict(raw) if isinstance(raw, dict) else {}
 
 
 def _chunk_id(chunk: Any, fallback: str) -> str:

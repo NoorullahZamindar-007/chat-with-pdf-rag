@@ -305,3 +305,40 @@ def test_index_documents_stores_chunk_id_in_metadata(monkeypatch):
 
     assert store.added[0][1] == [{"document_id": "doc", "chunk_id": "pdf_docs_0"}]
     assert store.added[0][2] == ["pdf_docs_0"]
+
+
+def test_add_chunks_to_vector_store_tolerates_non_dict_metadata(monkeypatch):
+    # A chunk can carry a non-dict metadata value (a stray string from
+    # a JSON retriever, for example); dict() on it used to raise
+    # ValueError/TypeError and lose the whole index batch instead of
+    # storing the chunk with only its chunk_id in metadata.
+    from src import vector_store
+
+    class FakeStore:
+        def __init__(self):
+            self.added = []
+
+        def get(self, ids):
+            return {"ids": []}
+
+        def add_texts(self, texts, metadatas, ids):
+            self.added.append((texts, metadatas, ids))
+
+        def persist(self):
+            pass
+
+    store = FakeStore()
+    monkeypatch.setattr(vector_store, "get_vector_store", lambda collection_name: store)
+
+    chunks = [
+        SimpleNamespace(
+            chunk_id="doc_page_1_chunk_0",
+            text="some text",
+            metadata="page 1",
+        ),
+    ]
+
+    added_ids = vector_store.add_chunks_to_vector_store(chunks, "pdf_docs")
+
+    assert added_ids == ["doc_page_1_chunk_0"]
+    assert store.added[0][1] == [{"chunk_id": "doc_page_1_chunk_0"}]

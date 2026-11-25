@@ -178,3 +178,22 @@ def test_run_basic_evaluation_saves_csv_and_metrics(tmp_path, monkeypatch):
     assert rows[0]["question"] == "Where is the refund policy?"
     assert rows[0]["expected_pages"] == "[2]"
     assert rows[1]["retrieval_hit"] == "False"
+
+
+def test_docs_from_retrieved_chunks_tolerates_non_dict_metadata():
+    # A retrieved chunk can carry a non-dict metadata value (a stray
+    # string from a JSON retriever, for example); dict() on it used to
+    # raise ValueError/TypeError and lose the whole eval run instead
+    # of building the doc with empty metadata.
+    from src.evaluation import _docs_from_retrieved_chunks
+
+    docs = _docs_from_retrieved_chunks(
+        [
+            {"text": "chunk text", "page_number": 2, "metadata": "page 2"},
+            {"text": "other text", "page_number": 3, "metadata": 123},
+        ]
+    )
+
+    assert docs[0].page_content == "chunk text"
+    assert docs[0].metadata == {"page_number": 2, "page": 2}
+    assert docs[1].metadata == {"page_number": 3, "page": 3}

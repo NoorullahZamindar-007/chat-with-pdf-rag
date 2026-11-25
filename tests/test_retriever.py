@@ -78,3 +78,25 @@ def test_retrieve_documents_without_document_id_searches_whole_store(monkeypatch
     retriever.retrieve_documents(store, "What is this?")
 
     assert store.calls[0][2] is None
+
+
+def test_retrieve_relevant_chunks_tolerates_non_dict_metadata(monkeypatch):
+    # A retrieved chunk can carry a non-dict metadata value (a stray
+    # string from a JSON retriever, for example); dict() on it used to
+    # raise ValueError/TypeError and lose the whole retrieval instead
+    # of returning the chunk with empty metadata.
+    class StringMetadataStore:
+        def similarity_search_with_relevance_scores(self, question, k, filter):
+            return [
+                (FakeDoc("chunk text", "page 3"), 0.9),
+                (FakeDoc("other text", 123), 0.8),
+            ]
+
+    monkeypatch.setattr(retriever, "get_vector_store", lambda name: StringMetadataStore())
+
+    results = retriever.retrieve_relevant_chunks("What is this?", "pdf_docs", "doc-abc")
+
+    assert results[0]["text"] == "chunk text"
+    assert results[0]["metadata"] == {}
+    assert results[0]["page_number"] is None
+    assert results[1]["metadata"] == {}

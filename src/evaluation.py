@@ -79,7 +79,13 @@ def _docs_from_retrieved_chunks(chunks: list[dict]) -> list[Any]:
     docs = []
     for chunk in chunks:
         page = chunk.get("page_number")
-        metadata = dict(chunk.get("metadata") or {})
+        # A retrieved chunk can carry a non-dict metadata value (a
+        # stray string from a JSON retriever, for example); dict() on
+        # it raises ValueError/TypeError and loses the whole eval run,
+        # so treat it as no metadata instead — the same tolerance the
+        # retriever already applies before these chunks are built.
+        raw_metadata = chunk.get("metadata") or {}
+        metadata = dict(raw_metadata) if isinstance(raw_metadata, dict) else {}
         metadata.setdefault("page_number", page)
         metadata.setdefault("page", page)
         docs.append(SimpleNamespace(page_content=chunk.get("text", ""), metadata=metadata))

@@ -48,7 +48,14 @@ def retrieve_relevant_chunks(
 
     results: list[dict] = []
     for doc, score in pairs:
-        metadata = dict(getattr(doc, "metadata", {}) or {})
+        # A retrieved chunk can carry a non-dict metadata value (a
+        # stray string from a JSON retriever, for example); dict() on
+        # it raises ValueError/TypeError and loses the whole retrieval,
+        # so treat it as no metadata instead — the same tolerance the
+        # chunker, the prompt builder and the chat renderer already
+        # apply to non-dict metadata.
+        raw_metadata = getattr(doc, "metadata", None) or {}
+        metadata = dict(raw_metadata) if isinstance(raw_metadata, dict) else {}
         results.append(
             {
                 "text": getattr(doc, "page_content", ""),
