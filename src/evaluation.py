@@ -54,6 +54,15 @@ def _load_qa_file(qa_file: str) -> list[dict[str, Any]]:
                     raise ValueError(
                         f"Expected {field} to be a string on line {line_number}."
                     )
+                # A blank string passes the type check but dies later
+                # inside retrieve_relevant_chunks ("question must not
+                # be blank") — after the LLM client was built and
+                # earlier rows already processed. Reject it here with
+                # the line number instead.
+                if not item[field].strip():
+                    raise ValueError(
+                        f"Expected {field} to be non-blank on line {line_number}."
+                    )
             # A single page number instead of a list is a natural
             # authoring mistake; treat it as a one-page list rather
             # than crashing the whole eval run in _unique_ints.

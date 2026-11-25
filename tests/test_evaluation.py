@@ -25,6 +25,33 @@ def test_load_qa_file_rejects_non_string_question(tmp_path):
         _load_qa_file(str(qa_file))
 
 
+def test_load_qa_file_rejects_blank_question(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = _write_qa_file(
+        tmp_path,
+        [{"question": "   ", "reference_answer": "It is on page two."}],
+    )
+
+    # A blank string passes the type check but dies later inside
+    # retrieve_relevant_chunks ("question must not be blank") — after
+    # the LLM client was built and earlier rows already processed.
+    with pytest.raises(ValueError, match="question.*non-blank.*line 1"):
+        _load_qa_file(str(qa_file))
+
+
+def test_load_qa_file_rejects_blank_reference_answer(tmp_path):
+    from src.evaluation import _load_qa_file
+
+    qa_file = _write_qa_file(
+        tmp_path,
+        [{"question": "Where is it?", "reference_answer": "  "}],
+    )
+
+    with pytest.raises(ValueError, match="reference_answer.*non-blank.*line 1"):
+        _load_qa_file(str(qa_file))
+
+
 def test_load_qa_file_tolerates_utf8_bom(tmp_path):
     from src.evaluation import _load_qa_file
 
