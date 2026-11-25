@@ -190,7 +190,7 @@ def get_settings() -> Settings:
         llm_provider=llm_provider,
         llm_max_tokens=llm_max_tokens,
         llm_timeout=llm_timeout,
-        groq_api_key=os.getenv("GROQ_API_KEY", ""),
+        groq_api_key=_str_env("GROQ_API_KEY", ""),
         groq_model=_str_env("GROQ_MODEL", "llama-3.1-8b-instant"),
         ollama_llm_model=_str_env(
             "OLLAMA_LLM_MODEL",

@@ -89,11 +89,13 @@ def test_string_env_values_are_stripped(monkeypatch):
     monkeypatch.setenv("EMBEDDING_PROVIDER", " ollama ")
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434 ")
     monkeypatch.setenv("GROQ_MODEL", " llama-3.1-8b-instant ")
+    monkeypatch.setenv("GROQ_API_KEY", "  gsk_test  ")
     settings = get_settings()
     assert settings.llm_provider == "groq"
     assert settings.embedding_provider == "ollama"
     assert settings.ollama_base_url == "http://localhost:11434"
     assert settings.groq_model == "llama-3.1-8b-instant"
+    assert settings.groq_api_key == "gsk_test"
 
 
 def test_empty_string_env_value_falls_back_to_default(monkeypatch):
