@@ -308,3 +308,27 @@ def test_answer_user_question_tolerates_none_metadata(monkeypatch):
     # The None metadata was normalised, and the page_number alias applied.
     assert result["chunks"][0].metadata == {}
     assert result["chunks"][1].metadata == {"page_number": 3, "page": 3}
+
+
+def test_render_retrieved_chunks_normalises_page_numbers():
+    # The prompt builder cites an integral float (3.0) as "[Page 3]"
+    # and a non-page as "[Page unknown]", but the retrieved-chunks
+    # renderer printed the raw value, so the same chunk showed as
+    # "Page 3.0" here and "Page None" when the metadata carried an
+    # explicit null page_number.
+    app.st.calls.clear()
+
+    app.render_retrieved_chunks(
+        [
+            {"page_content": "a", "metadata": {"page_number": 3.0}},
+            {"page_content": "b", "metadata": {"page_number": None}},
+            {"page_content": "c", "metadata": {"page": "5"}},
+            {"page_content": "d", "metadata": {"page_number": "abc"}},
+        ]
+    )
+
+    headers = [args[0] for name, args in app.st.calls if name == "markdown"]
+    assert "**Chunk 1 | Page 3**" in headers
+    assert "**Chunk 2 | Page unknown**" in headers
+    assert "**Chunk 3 | Page 5**" in headers
+    assert "**Chunk 4 | Page unknown**" in headers

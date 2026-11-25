@@ -250,6 +250,24 @@ def badge(label: str, value: str, accent: bool = False) -> str:
     return f'<span class="{tone.strip()}">{escape(label)}: {escape(value)}</span>'
 
 
+def _display_page(page) -> str:
+    """Render a chunk's page the way build_context cites it.
+
+    An integral float (3.0) or a digit string ("3") cites as "3", and a
+    value that is not a page at all (None, "abc", a negative) cites as
+    "unknown" instead of "Page None" or "Page 3.0".
+    """
+    if isinstance(page, bool) or page is None:
+        return "unknown"
+    if isinstance(page, int):
+        return str(page) if page >= 0 else "unknown"
+    if isinstance(page, float):
+        return str(int(page)) if page.is_integer() and page >= 0 else "unknown"
+    if isinstance(page, str) and page.strip().isdigit():
+        return str(int(page.strip()))
+    return "unknown"
+
+
 def source_badges(pages: list[int]) -> str:
     if not pages:
         return '<div class="source-wrap"><span class="source-pill">No source pages</span></div>'
@@ -516,7 +534,11 @@ def render_retrieved_chunks(chunks) -> None:
             # of losing the whole render.
             if not isinstance(metadata, dict):
                 metadata = {}
-            page = metadata.get("page_number", metadata.get("page", "unknown"))
+            # Cite the page the same way build_context does: an integral
+            # float (3.0) shows as "3", and a value that is not a page
+            # at all (None, "abc") shows as "unknown" instead of
+            # "Page None" or "Page 3.0".
+            page = _display_page(metadata.get("page_number", metadata.get("page", "unknown")))
             st.markdown(f"**Chunk {index} | Page {page}**")
             st.write(text)
 
