@@ -72,12 +72,37 @@ def test_retrieve_documents_passes_document_filter(monkeypatch):
     assert store.calls[0][2] == {"document_id": "doc-abc"}
 
 
+def test_retrieve_relevant_chunks_rejects_blank_document_id(monkeypatch):
+    store = install_fake_store(monkeypatch)
+
+    # A blank id used to filter on an empty id, match nothing and
+    # return [] with no error — the generic "not found" answer instead
+    # of a clear failure.
+    with pytest.raises(ValueError, match="document_id"):
+        retriever.retrieve_relevant_chunks("What is this?", "pdf_docs", "   ")
+
+    assert store.calls == []
+
+
 def test_retrieve_documents_without_document_id_searches_whole_store(monkeypatch):
     store = _SearchStore()
 
     retriever.retrieve_documents(store, "What is this?")
 
     assert store.calls[0][2] is None
+
+
+def test_retrieve_documents_rejects_blank_document_id(monkeypatch):
+    store = _SearchStore()
+
+    # A blank id is falsy, so the filter below became None and the
+    # helper silently searched the whole collection — chunks from
+    # other PDFs leaking into the answer. Only an omitted (None) id
+    # means "search everything".
+    with pytest.raises(ValueError, match="document_id"):
+        retriever.retrieve_documents(store, "What is this?", document_id="  ")
+
+    assert store.calls == []
 
 
 def test_retrieve_relevant_chunks_tolerates_non_dict_metadata(monkeypatch):

@@ -22,6 +22,11 @@ def retrieve_relevant_chunks(
         raise ValueError("question must not be blank.")
     if top_k <= 0:
         raise ValueError(f"top_k must be positive, got {top_k}.")
+    # A blank document_id used to filter on an empty id, match nothing
+    # and return [] with no error — the user got the generic "not
+    # found" answer instead of a clear failure.
+    if document_id is not None and not str(document_id).strip():
+        raise ValueError("document_id must not be blank.")
     logger.info("Retrieval started: collection=%s document_id=%s", collection_name, document_id)
     vector_store = get_vector_store(collection_name)
     metadata_filter = {"document_id": document_id}
@@ -89,6 +94,13 @@ def retrieve_documents(
         raise ValueError("question must not be blank.")
     if k is not None and k <= 0:
         raise ValueError(f"k must be positive, got {k}.")
+    # A blank document_id is falsy, so the filter below became None
+    # and the helper silently searched the whole collection — chunks
+    # from other PDFs leaking into the answer, defeating the scoping
+    # this helper promises. Only an omitted (None) id means "search
+    # everything".
+    if document_id is not None and not str(document_id).strip():
+        raise ValueError("document_id must not be blank.")
     settings = get_settings()
     logger.info("Retrieval started")
     try:
