@@ -324,6 +324,7 @@ def test_render_retrieved_chunks_normalises_page_numbers():
             {"page_content": "b", "metadata": {"page_number": None}},
             {"page_content": "c", "metadata": {"page": "5"}},
             {"page_content": "d", "metadata": {"page_number": "abc"}},
+            {"page_content": "e", "metadata": {"page_number": "3.0"}},
         ]
     )
 
@@ -332,3 +333,4 @@ def test_render_retrieved_chunks_normalises_page_numbers():
     assert "**Chunk 2 | Page unknown**" in headers
     assert "**Chunk 3 | Page 5**" in headers
     assert "**Chunk 4 | Page unknown**" in headers
+    assert "**Chunk 5 | Page 3**" in headers

@@ -253,19 +253,23 @@ def badge(label: str, value: str, accent: bool = False) -> str:
 def _display_page(page) -> str:
     """Render a chunk's page the way build_context cites it.
 
-    An integral float (3.0) or a digit string ("3") cites as "3", and a
+    An integral float (3.0), a digit string ("3") or an integral-float
+    string ("3.0", as a JSON retriever can carry it) cites as "3", and a
     value that is not a page at all (None, "abc", a negative) cites as
     "unknown" instead of "Page None" or "Page 3.0".
     """
     if isinstance(page, bool) or page is None:
         return "unknown"
-    if isinstance(page, int):
-        return str(page) if page >= 0 else "unknown"
-    if isinstance(page, float):
-        return str(int(page)) if page.is_integer() and page >= 0 else "unknown"
-    if isinstance(page, str) and page.strip().isdigit():
-        return str(int(page.strip()))
-    return "unknown"
+    try:
+        value = float(page)
+    except (TypeError, ValueError):
+        return "unknown"
+    if value != value or value in (float("inf"), float("-inf")):
+        return "unknown"
+    number = int(value)
+    if number != value or number < 0:
+        return "unknown"
+    return str(number)
 
 
 def source_badges(pages: list[int]) -> str:
