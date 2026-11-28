@@ -463,3 +463,50 @@ def test_compat_llm_invoke_tolerates_none_and_non_string_content():
     )
     assert response.content == "ok"
     assert captured["prompt"] == "hello\n\n\n\n42\n\nplain string"
+
+
+def test_extract_error_message_tolerates_non_dict_json():
+    """A JSON error body that is not an object must not crash error reporting.
+
+    A list or bare-string payload (from a proxy, or a provider that
+    changed its error shape) used to raise AttributeError on .get
+    inside _extract_error_message, escaping _post_json as a bare
+    traceback instead of the clean "API request failed" error.
+    """
+    from src.llm import _extract_error_message
+
+    assert _extract_error_message('["oops"]') == '["oops"]'
+    assert _extract_error_message('"oops"') == '"oops"'
+    assert _extract_error_message('{"error": {"message": "bad key"}}') == "bad key"
+    assert _extract_error_message('{"error": "plain"}') == "plain"
+    assert _extract_error_message("not json") == "not json"
+
+
+def test_groq_error_with_list_body_is_a_clear_api_error(monkeypatch):
+    """An HTTP error whose JSON body is a list must surface as an API error, not a traceback."""
+    from src import llm
+
+    def fake_urlopen(request, timeout):
+        raise urllib.error.HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            500,
+            "Internal Server Error",
+            {},
+            BytesIO(b'["oops"]'),
+        )
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    settings = SimpleNamespace(
+        llm_provider="groq",
+        groq_api_key="dummy",
+        groq_model="llama-3.1-8b-instant",
+        ollama_base_url="http://localhost:11434",
+        ollama_llm_model="llama3.1",
+        llm_max_tokens=800,
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        llm.generate_answer("hello", settings=settings)
+    assert "API request failed" in str(excinfo.value)
+    assert '["oops"]' in str(excinfo.value)

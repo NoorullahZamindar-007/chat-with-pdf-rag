@@ -174,6 +174,13 @@ def _extract_error_message(body: str) -> str:
         payload = json.loads(body)
     except json.JSONDecodeError:
         return body.strip()
+    # A JSON error body need not be an object: a list or bare-string
+    # payload (from a proxy, or a provider that changed its error
+    # shape) used to crash here on .get with AttributeError, escaping
+    # _post_json as a bare traceback instead of the clean API error
+    # the caller reports. Return the raw body, as for non-JSON text.
+    if not isinstance(payload, dict):
+        return body.strip()
     error = payload.get("error", payload)
     if isinstance(error, dict):
         return str(error.get("message", error))
