@@ -37,6 +37,19 @@ class _LLMResponse:
     content: str
 
 
+def _message_text(message: Any) -> str:
+    # A message with content=None (an empty/filtered reply passed back
+    # in, or a hand-built message) used to crash "\n\n".join with a
+    # bare TypeError; coerce it like _response_text does on the way
+    # out, so one odd message cannot lose the whole chat turn. A
+    # message with no content attribute at all keeps the old str()
+    # fallback; only an explicit None renders as an empty block.
+    content = getattr(message, "content", None)
+    if content is None:
+        return "" if hasattr(message, "content") else str(message)
+    return content if isinstance(content, str) else str(content)
+
+
 class _CompatLLM:
     """Tiny LangChain-like wrapper so the existing RAG chain can call .invoke()."""
 
@@ -44,7 +57,7 @@ class _CompatLLM:
         self.client = client
 
     def invoke(self, messages: list[Any]) -> _LLMResponse:
-        prompt = "\n\n".join(getattr(message, "content", str(message)) for message in messages)
+        prompt = "\n\n".join(_message_text(message) for message in messages)
         return _LLMResponse(content=self.client.generate(prompt))
 
 

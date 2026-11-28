@@ -434,3 +434,32 @@ def test_ollama_error_mentioning_a_model_is_not_model_not_found(monkeypatch):
         llm.generate_answer("hello", settings=_ollama_settings())
     assert "Ollama model not found" not in str(excinfo.value)
     assert "requires more system memory" in str(excinfo.value)
+
+
+def test_compat_llm_invoke_tolerates_none_and_non_string_content():
+    """A message with content=None (or a non-string content) must not crash .invoke().
+
+    "\n\n".join raised a bare TypeError on None content, so one odd
+    message — e.g. an empty/filtered reply passed back in — lost the
+    whole chat turn instead of rendering as an empty block.
+    """
+    from src.llm import _CompatLLM
+
+    captured = {}
+
+    class _FakeClient:
+        def generate(self, prompt):
+            captured["prompt"] = prompt
+            return "ok"
+
+    llm = _CompatLLM(_FakeClient())
+    response = llm.invoke(
+        [
+            SimpleNamespace(content="hello"),
+            SimpleNamespace(content=None),
+            SimpleNamespace(content=42),
+            "plain string",
+        ]
+    )
+    assert response.content == "ok"
+    assert captured["prompt"] == "hello\n\n\n\n42\n\nplain string"
